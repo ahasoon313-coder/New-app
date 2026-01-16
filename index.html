@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-title" content="My Shifts">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-
 <meta name="theme-color" content="#f2f2f7" id="meta-theme-color">
 
 <link rel="apple-touch-icon" href="icon-v2.png">
@@ -28,7 +27,7 @@ body {
   margin: 0; padding: 12px;
   font-family: var(--font-stack);
   background: var(--bg); color: var(--text);
-  padding-bottom: 40px; /* Space for scroll */
+  padding-bottom: 80px; /* Extra space for stats bar */
   transition: background 0.3s ease;
 }
 
@@ -55,24 +54,34 @@ button:active { transform: scale(0.96); }
   margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-.month-nav h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.month-nav h2 { margin: 0; font-size: 17px; font-weight: 700; cursor: pointer; }
 .jump-hint { font-size: 10px; color: var(--primary); display: block; margin-top: 2px; }
+
+/* Date Picker (Hidden by default) */
+#datePickerContainer {
+  display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+  background: var(--card); padding: 15px; border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border);
+}
+#datePickerContainer.show { display: block; }
+.picker-row { display: flex; gap: 10px; margin-bottom: 10px; }
 
 /* --- Calendar Wrapper --- */
 .calendar-wrapper {
   background: var(--card); border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   overflow: hidden; border: 1px solid var(--border);
+  position: relative;
+  touch-action: pan-y; /* Allow vertical scroll, handle horizontal in JS */
 }
 
 .header, .row {
   display: grid;
-  /* Default 5 columns */
   grid-template-columns: 70px repeat(5, 1fr);
   text-align: center; align-items: stretch;
 }
 
-/* FOCUS MODE: When a group is selected, we change grid to 2 columns */
+/* FOCUS MODE */
 .calendar-wrapper.focus-mode .header,
 .calendar-wrapper.focus-mode .row {
   grid-template-columns: 85px 1fr;
@@ -85,7 +94,6 @@ button:active { transform: scale(0.96); }
   backdrop-filter: blur(5px);
 }
 .header div { padding: 12px 0; }
-
 .row { border-bottom: 1px solid var(--border); }
 
 /* --- Date Cell --- */
@@ -96,7 +104,7 @@ button:active { transform: scale(0.96); }
 }
 .day-name { font-size: 10px; opacity: 0.5; font-weight: 500; text-transform: uppercase; }
 
-/* Holiday Tag Styling */
+/* Holiday Tags */
 .holiday-tag {
   font-size: 9px; padding: 2px 4px; border-radius: 4px;
   margin-top: 3px; white-space: nowrap; overflow: hidden; max-width: 100%;
@@ -110,10 +118,7 @@ button:active { transform: scale(0.96); }
   display: flex; justify-content: center; align-items: center;
   font-weight: 600; font-size: 14px; padding: 10px 0;
 }
-/* Bigger text when focused */
 .calendar-wrapper.focus-mode .shift-cell { font-size: 18px; font-weight: 700; }
-
-/* Hiding columns logic */
 .col-hidden { display: none; }
 
 /* Colors */
@@ -133,6 +138,21 @@ body.dark .N { background: #5a4f85; color: #fff; }
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
   background: var(--primary);
 }
+
+/* --- STATISTICS BAR (Fixed Bottom) --- */
+.stats-bar {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--card); border: 1px solid var(--border);
+  padding: 10px 20px; border-radius: 50px;
+  display: flex; gap: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  z-index: 100;
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap;
+}
+.stat-item { display: flex; align-items: center; gap: 4px; }
+.stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
 </style>
 </head>
 
@@ -157,17 +177,28 @@ body.dark .N { background: #5a4f85; color: #fff; }
 
 <div class="month-nav">
   <button class="btn-icon" onclick="changeMonth(-1)">◀</button>
-  <div style="text-align:center; cursor:pointer" onclick="resetToToday()">
+  <div style="text-align:center; cursor:pointer" onclick="toggleDatePicker()">
     <h2 id="monthTitle"></h2>
-    <span class="jump-hint" id="jumpText">Jump to Today</span>
+    <span class="jump-hint" id="jumpText">Tap to change date</span>
   </div>
   <button class="btn-icon" onclick="changeMonth(1)">▶</button>
+</div>
+
+<div id="datePickerContainer">
+  <div class="picker-row">
+    <select id="pickerMonth"></select>
+    <select id="pickerYear"></select>
+  </div>
+  <button onclick="applyDate()" style="width:100%; background:var(--primary); color:white">Go</button>
 </div>
 
 <div class="calendar-wrapper" id="calendarWrapper">
   <div class="header" id="calHeader"></div>
   <div id="calendarBody"></div>
 </div>
+
+<div class="stats-bar" id="statsBar" style="display:none">
+  </div>
 
 <script>
 /* ---------- DATA ---------- */
@@ -180,11 +211,16 @@ const days = {
   en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   ar: ["أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"]
 };
+// Stats Labels
+const statLabels = {
+  en: { M: "Morn", A: "Aft", N: "Night", O: "Off" },
+  ar: { M: "صباح", A: "عصر", N: "ليل", O: "راحة" }
+};
 
 // Reference: 15 Jan 2026 => A=M
 const referenceDate = new Date(2026, 0, 15);
 
-// Kuwait Islamic Dates Data
+// Holidays
 const islamicEvents = {
   2026: {
     ramadanStart: "2026-02-18",
@@ -200,38 +236,40 @@ let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
 
-/* ---------- URL & GROUP HANDLING ---------- */
+/* ---------- URL HANDLING ---------- */
 const params = new URLSearchParams(window.location.search);
 const linkGroup = params.get("group");
-
 if (linkGroup) {
   const map = { A: 0, B: 1, C: 2, D: 3, E: 4 };
-  if (map[linkGroup.toUpperCase()] !== undefined) {
-    localStorage.setItem("group", map[linkGroup.toUpperCase()]);
-  }
+  if (map[linkGroup.toUpperCase()] !== undefined) localStorage.setItem("group", map[linkGroup.toUpperCase()]);
 }
-
 const savedGroup = localStorage.getItem("group") ?? "-1";
 groupSelect.value = savedGroup;
-
-// Lock selector only if link provided
 if (linkGroup) groupSelect.disabled = true;
 
-/* ---------- FUNCTIONS ---------- */
+/* ---------- SWIPE LOGIC ---------- */
+let touchStartX = 0;
+let touchEndX = 0;
 
-// NEW: Helper to update Safari top bar color
+const wrapper = document.getElementById("calendarWrapper");
+wrapper.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, false);
+wrapper.addEventListener('touchend', e => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipe();
+}, false);
+
+function handleSwipe() {
+  if (touchEndX < touchStartX - 50) changeMonth(1); // Swipe Left -> Next
+  if (touchEndX > touchStartX + 50) changeMonth(-1); // Swipe Right -> Prev
+}
+
+/* ---------- FUNCTIONS ---------- */
 function updateThemeColor(isDark) {
   const themeMeta = document.getElementById("meta-theme-color");
-  if (themeMeta) {
-    // #000000 for Dark, #f2f2f7 for Light
-    themeMeta.setAttribute("content", isDark ? "#000000" : "#f2f2f7");
-  }
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#000000" : "#f2f2f7");
 }
 
-function saveGroup() {
-  localStorage.setItem("group", groupSelect.value);
-  render();
-}
+function saveGroup() { localStorage.setItem("group", groupSelect.value); render(); }
 
 function toggleLang() {
   lang = lang === "en" ? "ar" : "en";
@@ -243,15 +281,11 @@ function toggleDark() {
   dark = !dark;
   localStorage.setItem("dark", dark);
   document.body.classList.toggle("dark");
-  updateThemeColor(dark); // Update top bar when button clicked
+  updateThemeColor(dark);
 }
 
 function changeMonth(n) {
   currentDate.setMonth(currentDate.getMonth() + n);
-  render();
-}
-function resetToToday() {
-  currentDate = new Date();
   render();
 }
 
@@ -259,12 +293,48 @@ function shareLink() {
   const gVal = parseInt(groupSelect.value);
   const groups = ["A","B","C","D","E"];
   let url = window.location.href.split('?')[0];
-  if (gVal !== -1) {
-    url += `?group=${groups[gVal]}`;
+  if (gVal !== -1) url += `?group=${groups[gVal]}`;
+  navigator.clipboard.writeText(url).then(() => alert(lang === "ar" ? "تم نسخ الرابط!" : "Link copied!"));
+}
+
+/* --- Date Picker Logic --- */
+function toggleDatePicker() {
+  const picker = document.getElementById("datePickerContainer");
+  if (picker.style.display === "block") {
+    picker.style.display = "none";
+  } else {
+    // Populate picker
+    const mSel = document.getElementById("pickerMonth");
+    const ySel = document.getElementById("pickerYear");
+    mSel.innerHTML = ""; ySel.innerHTML = "";
+    
+    // Months
+    for(let i=0; i<12; i++) {
+      let opt = document.createElement("option");
+      opt.value = i;
+      opt.innerText = new Date(2000, i, 1).toLocaleString(lang, {month:"short"});
+      if(i === currentDate.getMonth()) opt.selected = true;
+      mSel.appendChild(opt);
+    }
+    // Years (Current +/- 5)
+    const cy = currentDate.getFullYear();
+    for(let i=cy-5; i<=cy+5; i++) {
+      let opt = document.createElement("option");
+      opt.value = i;
+      opt.innerText = i;
+      if(i === cy) opt.selected = true;
+      ySel.appendChild(opt);
+    }
+    picker.style.display = "block";
   }
-  navigator.clipboard.writeText(url).then(() => {
-    alert(lang === "ar" ? "تم نسخ الرابط!" : "Link copied!");
-  });
+}
+
+function applyDate() {
+  const m = parseInt(document.getElementById("pickerMonth").value);
+  const y = parseInt(document.getElementById("pickerYear").value);
+  currentDate = new Date(y, m, 1);
+  document.getElementById("datePickerContainer").style.display = "none";
+  render();
 }
 
 /* ---------- RENDER ENGINE ---------- */
@@ -272,29 +342,30 @@ function render() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const selected = parseInt(groupSelect.value);
-  const wrapper = document.getElementById("calendarWrapper");
-
-  // UI Text
+  
+  // Update Text
   monthTitle.innerText = currentDate.toLocaleString(lang, { month: "long", year: "numeric" });
-  document.getElementById("jumpText").innerText = lang === "ar" ? "العودة لليوم" : "Jump to Today";
+  document.getElementById("jumpText").innerText = lang === "ar" ? "اضغط لتغيير التاريخ" : "Tap to change date";
 
-  // Focus Mode Toggle (CSS Class)
-  if (selected !== -1) wrapper.classList.add("focus-mode");
-  else wrapper.classList.remove("focus-mode");
+  // Focus Mode
+  const wrap = document.getElementById("calendarWrapper");
+  if (selected !== -1) wrap.classList.add("focus-mode");
+  else wrap.classList.remove("focus-mode");
 
-  // Build Header
+  // Header
   const groups = ["A", "B", "C", "D", "E"];
   let headerHTML = `<div>${lang==="ar"?"تاريخ":"Date"}</div>`;
   groups.forEach((g, idx) => {
-    // Hide column if we are in focus mode and this isn't the selected group
     const hidden = (selected !== -1 && selected !== idx) ? "col-hidden" : "";
     headerHTML += `<div class="${hidden}">${g}</div>`;
   });
   document.getElementById("calHeader").innerHTML = headerHTML;
 
-  // Build Body
+  // Body & Stats Calculation
   const calBody = document.getElementById("calendarBody");
   calBody.innerHTML = "";
+  
+  const stats = { M:0, A:0, N:0, O:0 }; // Stats counter
   
   const today = new Date(); today.setHours(0,0,0,0);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -305,23 +376,15 @@ function render() {
     date.setHours(0,0,0,0);
     const iso = date.toISOString().split("T")[0];
 
-    // Determine Holiday Name
-    let holidayName = "";
-    let holidayClass = "";
-
+    // Holiday Logic
+    let holidayName = "", holidayClass = "";
     if (events) {
       if (iso >= events.ramadanStart && iso <= events.ramadanEnd) {
-        holidayName = lang === "ar" ? "رمضان" : "Ramadan";
-        holidayClass = "ramadan-tag";
+        holidayName = lang === "ar" ? "رمضان" : "Ramadan"; holidayClass = "ramadan-tag";
       } else if (iso === events.eidFitr) {
-        holidayName = lang === "ar" ? "عيد الفطر" : "Eid Al-Fitr";
-        holidayClass = "eid-tag";
-      } else if (iso === events.arafah) {
-        holidayName = lang === "ar" ? "عرفة" : "Arafah";
-        holidayClass = "eid-tag";
-      } else if (iso === events.eidAdha) {
-        holidayName = lang === "ar" ? "عيد الأضحى" : "Eid Al-Adha";
-        holidayClass = "eid-tag";
+        holidayName = lang === "ar" ? "عيد الفطر" : "Eid Fitr"; holidayClass = "eid-tag";
+      } else if (iso === events.arafah || iso === events.eidAdha) {
+        holidayName = lang === "ar" ? "عيد" : "Eid"; holidayClass = "eid-tag";
       }
     }
 
@@ -329,49 +392,51 @@ function render() {
     row.className = "row";
     if (date.getTime() === today.getTime()) row.classList.add("today-row");
 
-    // Create Date Cell
     let tagHTML = holidayName ? `<div class="holiday-tag ${holidayClass}">${holidayName}</div>` : "";
-    
-    row.innerHTML = `
-      <div class="date-cell">
-        <span>${d}</span>
-        <span class="day-name">${days[lang][date.getDay()]}</span>
-        ${tagHTML}
-      </div>
-    `;
+    row.innerHTML = `<div class="date-cell"><span>${d}</span><span class="day-name">${days[lang][date.getDay()]}</span>${tagHTML}</div>`;
 
-    // Shift Columns
     const diff = Math.floor((date - referenceDate) / 86400000);
+    
+    // Render Shifts
     for (let g = 0; g < 5; g++) {
-      // Hide logic
       const hidden = (selected !== -1 && selected !== g) ? "col-hidden" : "";
       
-      const idx = ((diff + g + 5) % 5 + 5) % 5; // Safe modulo
+      const idx = ((diff + g + 5) % 5 + 5) % 5;
       const code = shiftCodes[idx];
       const shiftName = shiftNames[lang][code];
+
+      // If this is the selected group (or viewing all), count stats
+      if (selected === -1 || selected === g) {
+        stats[code]++;
+      }
 
       const cell = document.createElement("div");
       cell.className = `shift-cell ${code} ${hidden}`;
       cell.innerText = shiftName;
-      
       row.appendChild(cell);
     }
     calBody.appendChild(row);
   }
+
+  // Render Stats Bar (Only if a group is selected)
+  const statsBar = document.getElementById("statsBar");
+  if (selected !== -1) {
+    statsBar.style.display = "flex";
+    statsBar.innerHTML = `
+      <div class="stat-item"><div class="stat-dot" style="background:#ffe599"></div> ${stats.M} ${statLabels[lang].M}</div>
+      <div class="stat-item"><div class="stat-dot" style="background:#9fc5e8"></div> ${stats.A} ${statLabels[lang].A}</div>
+      <div class="stat-item"><div class="stat-dot" style="background:#8e7cc3"></div> ${stats.N} ${statLabels[lang].N}</div>
+      <div class="stat-item"><div class="stat-dot" style="background:#ccc"></div> ${stats.O} ${statLabels[lang].O}</div>
+    `;
+  } else {
+    statsBar.style.display = "none";
+  }
 }
 
-/* ---------- INITIALIZATION ---------- */
-// 1. Apply Dark Mode Class
-if (dark) {
-  document.body.classList.add("dark");
-}
-
-// 2. Set Initial Top Bar Color (NEW)
+/* ---------- INIT ---------- */
+if (dark) document.body.classList.add("dark");
 updateThemeColor(dark);
-
-// 3. Render Calendar
 render();
-
 </script>
 </body>
 </html>
