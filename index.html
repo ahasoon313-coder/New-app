@@ -6,7 +6,8 @@
 <meta name="apple-mobile-web-app-title" content="My Shifts">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f2f2f7">
+
+<meta name="theme-color" content="#f2f2f7" id="meta-theme-color">
 
 <link rel="apple-touch-icon" href="icon-v2.png">
 <link rel="icon" type="image/png" href="icon-v2.png">
@@ -216,23 +217,35 @@ groupSelect.value = savedGroup;
 // Lock selector only if link provided
 if (linkGroup) groupSelect.disabled = true;
 
-if (dark) document.body.classList.add("dark");
-
 /* ---------- FUNCTIONS ---------- */
+
+// NEW: Helper to update Safari top bar color
+function updateThemeColor(isDark) {
+  const themeMeta = document.getElementById("meta-theme-color");
+  if (themeMeta) {
+    // #000000 for Dark, #f2f2f7 for Light
+    themeMeta.setAttribute("content", isDark ? "#000000" : "#f2f2f7");
+  }
+}
+
 function saveGroup() {
   localStorage.setItem("group", groupSelect.value);
   render();
 }
+
 function toggleLang() {
   lang = lang === "en" ? "ar" : "en";
   localStorage.setItem("lang", lang);
   render();
 }
+
 function toggleDark() {
   dark = !dark;
   localStorage.setItem("dark", dark);
   document.body.classList.toggle("dark");
+  updateThemeColor(dark); // Update top bar when button clicked
 }
+
 function changeMonth(n) {
   currentDate.setMonth(currentDate.getMonth() + n);
   render();
@@ -346,7 +359,19 @@ function render() {
     calBody.appendChild(row);
   }
 }
+
+/* ---------- INITIALIZATION ---------- */
+// 1. Apply Dark Mode Class
+if (dark) {
+  document.body.classList.add("dark");
+}
+
+// 2. Set Initial Top Bar Color (NEW)
+updateThemeColor(dark);
+
+// 3. Render Calendar
 render();
+
 </script>
 </body>
 </html>
