@@ -62,9 +62,11 @@ button:active { transform: scale(0.96); }
   display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
   background: var(--card); padding: 15px; border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border);
+  width: 250px;
 }
 #datePickerContainer.show { display: block; }
 .picker-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.picker-row select { width: 100%; }
 
 /* --- Calendar Wrapper --- */
 .calendar-wrapper {
@@ -169,6 +171,7 @@ body.dark .N { background: #5a4f85; color: #fff; }
   </select>
   
   <div class="row-btn">
+    <button onclick="exportToCalendar()" class="btn-icon" style="background:#34c759; color:white">📅</button>
     <button onclick="shareLink()" class="btn-icon">🔗</button>
     <button onclick="toggleLang()" class="btn-icon">🌐</button>
     <button onclick="toggleDark()" class="btn-icon">🌙</button>
@@ -189,7 +192,7 @@ body.dark .N { background: #5a4f85; color: #fff; }
     <select id="pickerMonth"></select>
     <select id="pickerYear"></select>
   </div>
-  <button onclick="applyDate()" style="width:100%; background:var(--primary); color:white">Go</button>
+  <button onclick="applyDate()" style="width:100%; background:var(--primary); color:white; padding:10px; border-radius:8px; border:none;">Go</button>
 </div>
 
 <div class="calendar-wrapper" id="calendarWrapper">
@@ -297,18 +300,80 @@ function shareLink() {
   navigator.clipboard.writeText(url).then(() => alert(lang === "ar" ? "تم نسخ الرابط!" : "Link copied!"));
 }
 
+/* --- EXPORT TO CALENDAR (ICS) --- */
+function exportToCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const selected = parseInt(groupSelect.value);
+  
+  if(selected === -1) {
+    alert(lang === "ar" ? "يرجى اختيار مجموعة أولاً" : "Please select a specific Group first.");
+    return;
+  }
+
+  let icsContent = 
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//MyShifts//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+`;
+
+  const shiftTimes = {
+    M: { start: "070000", end: "150000" }, 
+    A: { start: "140000", end: "220000" }, 
+    N: { start: "220000", end: "060000" }, 
+  };
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    date.setHours(0,0,0,0);
+    
+    const diff = Math.floor((date - referenceDate) / 86400000);
+    const idx = ((diff + selected + 5) % 5 + 5) % 5;
+    const code = shiftCodes[idx];
+
+    if(code === "O" || !shiftTimes[code]) continue;
+    const sTime = shiftTimes[code];
+    
+    // Format Date YYYYMMDD
+    const yStr = date.getFullYear();
+    const mStr = String(date.getMonth() + 1).padStart(2, '0');
+    const dStr = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${yStr}${mStr}${dStr}`;
+
+    icsContent += 
+`BEGIN:VEVENT
+SUMMARY:${shiftNames[lang][code]}
+DTSTART:${dateStr}T${sTime.start}
+DTEND:${dateStr}T${sTime.end}
+DESCRIPTION:Shift Group ${["A","B","C","D","E"][selected]}
+STATUS:CONFIRMED
+END:VEVENT
+`;
+  }
+  icsContent += "END:VCALENDAR";
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.setAttribute('download', `shifts-${year}-${month+1}.ics`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 /* --- Date Picker Logic --- */
 function toggleDatePicker() {
   const picker = document.getElementById("datePickerContainer");
   if (picker.style.display === "block") {
     picker.style.display = "none";
   } else {
-    // Populate picker
     const mSel = document.getElementById("pickerMonth");
     const ySel = document.getElementById("pickerYear");
     mSel.innerHTML = ""; ySel.innerHTML = "";
     
-    // Months
     for(let i=0; i<12; i++) {
       let opt = document.createElement("option");
       opt.value = i;
@@ -316,7 +381,6 @@ function toggleDatePicker() {
       if(i === currentDate.getMonth()) opt.selected = true;
       mSel.appendChild(opt);
     }
-    // Years (Current +/- 5)
     const cy = currentDate.getFullYear();
     for(let i=cy-5; i<=cy+5; i++) {
       let opt = document.createElement("option");
@@ -365,7 +429,7 @@ function render() {
   const calBody = document.getElementById("calendarBody");
   calBody.innerHTML = "";
   
-  const stats = { M:0, A:0, N:0, O:0 }; // Stats counter
+  const stats = { M:0, A:0, N:0, O:0 }; 
   
   const today = new Date(); today.setHours(0,0,0,0);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -374,7 +438,13 @@ function render() {
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     date.setHours(0,0,0,0);
-    const iso = date.toISOString().split("T")[0];
+    
+    // --- TIMEZONE FIX: Manual Format YYYY-MM-DD ---
+    const yStr = date.getFullYear();
+    const mStr = String(date.getMonth() + 1).padStart(2, '0');
+    const dStr = String(date.getDate()).padStart(2, '0');
+    const iso = `${yStr}-${mStr}-${dStr}`;
+    // ----------------------------------------------
 
     // Holiday Logic
     let holidayName = "", holidayClass = "";
