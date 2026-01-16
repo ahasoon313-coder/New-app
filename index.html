@@ -223,14 +223,19 @@ const statLabels = {
 // Reference: 15 Jan 2026 => A=M
 const referenceDate = new Date(2026, 0, 15);
 
-// Holidays
+// Holidays - UPDATED FOR EID RANGES
 const islamicEvents = {
   2026: {
     ramadanStart: "2026-02-18",
     ramadanEnd: "2026-03-19",
-    eidFitr: "2026-03-20",
+    // Eid Fitr: 3 Days
+    eidFitrStart: "2026-03-20",
+    eidFitrEnd: "2026-03-22",
+    // Arafah
     arafah: "2026-05-26",
-    eidAdha: "2026-05-27"
+    // Eid Adha: 4 Days
+    eidAdhaStart: "2026-05-27",
+    eidAdhaEnd: "2026-05-30"
   }
 };
 
@@ -439,22 +444,23 @@ function render() {
     const date = new Date(year, month, d);
     date.setHours(0,0,0,0);
     
-    // --- TIMEZONE FIX: Manual Format YYYY-MM-DD ---
+    // Manual Format YYYY-MM-DD
     const yStr = date.getFullYear();
     const mStr = String(date.getMonth() + 1).padStart(2, '0');
     const dStr = String(date.getDate()).padStart(2, '0');
     const iso = `${yStr}-${mStr}-${dStr}`;
-    // ----------------------------------------------
 
-    // Holiday Logic
+    // Holiday Logic (UPDATED FOR RANGES)
     let holidayName = "", holidayClass = "";
     if (events) {
       if (iso >= events.ramadanStart && iso <= events.ramadanEnd) {
         holidayName = lang === "ar" ? "رمضان" : "Ramadan"; holidayClass = "ramadan-tag";
-      } else if (iso === events.eidFitr) {
+      } else if (iso >= events.eidFitrStart && iso <= events.eidFitrEnd) {
         holidayName = lang === "ar" ? "عيد الفطر" : "Eid Fitr"; holidayClass = "eid-tag";
-      } else if (iso === events.arafah || iso === events.eidAdha) {
-        holidayName = lang === "ar" ? "عيد" : "Eid"; holidayClass = "eid-tag";
+      } else if (iso === events.arafah) {
+        holidayName = lang === "ar" ? "عرفة" : "Arafah"; holidayClass = "eid-tag";
+      } else if (iso >= events.eidAdhaStart && iso <= events.eidAdhaEnd) {
+        holidayName = lang === "ar" ? "عيد الأضحى" : "Eid Adha"; holidayClass = "eid-tag";
       }
     }
 
