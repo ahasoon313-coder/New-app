@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>My Shifts Calendar</title>
+<title>My Shifts Tracker</title>
 <meta name="apple-mobile-web-app-title" content="My Shifts">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -27,8 +27,9 @@ body {
   margin: 0; padding: 12px;
   font-family: var(--font-stack);
   background: var(--bg); color: var(--text);
-  padding-bottom: 90px; /* Space for stats bar */
+  padding-bottom: 100px; /* Space for larger stats bar */
   transition: background 0.3s ease;
+  user-select: none; /* Prevent text highlighting on tap */
 }
 
 /* --- Controls --- */
@@ -57,7 +58,7 @@ button:active { transform: scale(0.96); }
 .month-nav h2 { margin: 0; font-size: 18px; font-weight: 700; cursor: pointer; }
 .jump-hint { font-size: 10px; color: var(--primary); display: block; margin-top: 2px; }
 
-/* --- GRID CALENDAR STRUCTURE --- */
+/* --- GRID CALENDAR --- */
 .calendar-wrapper {
   background: var(--card); border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
@@ -66,88 +67,103 @@ button:active { transform: scale(0.96); }
   touch-action: pan-y;
 }
 
-/* 7 Column Grid */
 .calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr); /* 7 equal columns */
-  text-align: center;
+  display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
 }
-
-/* Day Names Header (Sun, Mon...) */
 .day-names {
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--header-bg); border-bottom: 1px solid var(--border);
   font-weight: 700; color: var(--text); opacity: 0.6;
   font-size: 12px; padding: 10px 0;
 }
 
-/* Individual Day Cell */
+/* Day Cell */
 .day-cell {
-  aspect-ratio: 0.85; /* Makes them slightly tall squares */
+  aspect-ratio: 0.8; 
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   position: relative;
   display: flex; flex-direction: column; 
   align-items: center; justify-content: flex-start;
   padding-top: 6px;
+  cursor: pointer; /* Suggests clickable */
 }
-.day-cell:nth-child(7n) { border-right: none; } /* Remove right border on last col */
+.day-cell:active { opacity: 0.7; background: var(--border); } /* Touch feedback */
+.day-cell:nth-child(7n) { border-right: none; }
 
-/* Date Number */
-.date-num { font-size: 14px; font-weight: 600; z-index: 2; }
+.date-num { font-size: 14px; font-weight: 600; z-index: 2; pointer-events: none; }
 .today .date-num { 
   background: var(--primary); color: white; 
   border-radius: 50%; width: 24px; height: 24px; line-height: 24px;
 }
 
-/* Shift Text (M/A/N) */
-.shift-text {
-  font-size: 18px; font-weight: 800;
-  margin-top: 4px; z-index: 2;
-}
+.shift-text { font-size: 18px; font-weight: 800; margin-top: 4px; z-index: 2; pointer-events: none; }
 
-/* Holiday Bar (Bottom of cell) */
+/* Holiday Bar */
 .holiday-bar {
   position: absolute; bottom: 4px; left: 2px; right: 2px;
   font-size: 8px; border-radius: 4px; padding: 2px 0;
   color: white; font-weight: bold;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; pointer-events: none;
 }
 .ramadan-tag { background: #34c759; }
 .eid-tag { background: #ff3b30; }
 
-/* Shift Colors (Background of the whole cell) */
+/* --- COLORS & STATUSES --- */
+/* Standard Shifts */
 .M { background: #ffe599; color: #5b4812; }
 .A { background: #9fc5e8; color: #1e3f5e; }
 .N { background: #8e7cc3; color: white; }
-.O { background: transparent; } /* Off days are clear */
+.O { background: transparent; }
+
+/* CUSTOM LEAVES (User Overrides) */
+.SL { background: #ffb3b3 !important; color: #b30000 !important; } /* Sick - Red */
+.VL { background: #b3ffb3 !important; color: #006600 !important; } /* Vacation - Green */
+.EL { background: #ffffb3 !important; color: #999900 !important; } /* Emergency - Yellow */
+
+body.dark .SL { background: #4d0000 !important; color: #ffb3b3 !important; }
+body.dark .VL { background: #003300 !important; color: #b3ffb3 !important; }
+body.dark .EL { background: #4d4d00 !important; color: #ffffb3 !important; }
 
 body.dark .M { background: #665c3d; color: #fff; }
 body.dark .A { background: #3a4e63; color: #fff; }
 body.dark .N { background: #5a4f85; color: #fff; }
 
-/* Empty cells for padding */
-.empty-cell { background: var(--header-bg); opacity: 0.3; }
+.empty-cell { background: var(--header-bg); opacity: 0.3; pointer-events: none; }
 
-/* --- DATE PICKER --- */
-#datePickerContainer {
-  display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
-  background: var(--card); padding: 15px; border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border);
-  width: 250px;
+/* --- POPUPS (Modals) --- */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center;
 }
-#datePickerContainer.show { display: block; }
-.picker-row { display: flex; gap: 10px; margin-bottom: 10px; }
-.picker-row select { width: 100%; }
+.modal-overlay.show { display: flex; animation: fadeUp 0.2s ease-out; }
+
+.modal-content {
+  background: var(--card); width: 100%; max-width: 400px;
+  border-top-left-radius: 20px; border-top-right-radius: 20px;
+  padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+}
+.modal-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; text-align: center; }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.action-btn {
+  padding: 15px; border-radius: 12px; font-size: 14px; font-weight: bold; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text);
+}
+.btn-sl { background: #ffb3b3; color: #800000; border: none; }
+.btn-vl { background: #b3ffb3; color: #004d00; border: none; }
+.btn-el { background: #ffffb3; color: #666600; border: none; }
+.btn-clear { background: var(--border); }
+
+@keyframes fadeUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 /* --- STATS BAR --- */
 .stats-bar {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 20px; left: 20px; right: 20px;
   background: var(--card); border: 1px solid var(--border);
-  padding: 10px 20px; border-radius: 50px;
-  display: flex; gap: 15px;
+  padding: 12px; border-radius: 16px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-  z-index: 100; font-size: 13px; font-weight: 600; white-space: nowrap;
+  z-index: 100; font-size: 12px; font-weight: 600;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
 }
 .stat-item { display: flex; align-items: center; gap: 4px; }
 .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -159,7 +175,8 @@ body.dark .N { background: #5a4f85; color: #fff; }
 
 <div class="controls-area">
   <select id="groupSelect" onchange="saveGroup()">
-    <option value="-1">Select Group...</option> <option value="0">Group A</option>
+    <option value="-1">Select Group...</option>
+    <option value="0">Group A</option>
     <option value="1">Group B</option>
     <option value="2">Group C</option>
     <option value="3">Group D</option>
@@ -167,7 +184,6 @@ body.dark .N { background: #5a4f85; color: #fff; }
   </select>
   
   <div class="row-btn">
-    <button onclick="exportToCalendar()" class="btn-icon" style="background:#34c759; color:white">📅</button>
     <button onclick="shareLink()" class="btn-icon">🔗</button>
     <button onclick="toggleLang()" class="btn-icon">🌐</button>
     <button onclick="toggleDark()" class="btn-icon">🌙</button>
@@ -178,14 +194,9 @@ body.dark .N { background: #5a4f85; color: #fff; }
   <button class="btn-icon" onclick="changeMonth(-1)">◀</button>
   <div style="text-align:center; cursor:pointer" onclick="toggleDatePicker()">
     <h2 id="monthTitle"></h2>
-    <span class="jump-hint" id="jumpText">Tap to change date</span>
+    <span class="jump-hint" id="jumpText"></span>
   </div>
   <button class="btn-icon" onclick="changeMonth(1)">▶</button>
-</div>
-
-<div id="datePickerContainer">
-  <div class="picker-row"><select id="pickerMonth"></select><select id="pickerYear"></select></div>
-  <button onclick="applyDate()" style="width:100%; background:var(--primary); color:white; padding:10px; border-radius:8px; border:none;">Go</button>
 </div>
 
 <div class="calendar-wrapper" id="calendarWrapper">
@@ -195,29 +206,47 @@ body.dark .N { background: #5a4f85; color: #fff; }
 
 <div class="stats-bar" id="statsBar" style="display:none"></div>
 
+<div id="datePickerContainer" class="modal-overlay" onclick="closePicker(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-title" id="pickerTitle">Jump to Date</div>
+    <div style="display:flex; gap:10px; margin-bottom:15px;">
+      <select id="pickerMonth" style="flex:1"></select>
+      <select id="pickerYear" style="flex:1"></select>
+    </div>
+    <button onclick="applyDate()" style="width:100%; background:var(--primary); color:white; padding:12px; border-radius:10px;">Go</button>
+  </div>
+</div>
+
+<div id="leaveModal" class="modal-overlay" onclick="closeLeaveModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-title" id="leaveModalTitle">Edit Day</div>
+    <div class="action-grid">
+      <button class="action-btn btn-sl" onclick="setLeave('SL')">Sick Leave 🤒</button>
+      <button class="action-btn btn-vl" onclick="setLeave('VL')">Vacation 🏖</button>
+      <button class="action-btn btn-el" onclick="setLeave('EL')">Emergency 🚨</button>
+      <button class="action-btn btn-clear" onclick="setLeave(null)">Clear / Reset 🔄</button>
+    </div>
+    <div style="text-align:center; margin-top:15px; opacity:0.6; font-size:12px;">Changes update your stats immediately</div>
+  </div>
+</div>
+
 <script>
-/* ---------- DATA ---------- */
+/* ---------- CONFIG ---------- */
 const shiftCodes = ["M", "A", "N", "O", "O"];
-// Short names for the Grid View (just 1 letter or short word)
+// Short labels for grid
 const shiftShort = {
-  en: { M: "M", A: "A", N: "N", O: "" },
-  ar: { M: "ص", A: "ع", N: "ل", O: "" }
-};
-const shiftFull = {
-  en: { M: "Morning", A: "Afternoon", N: "Night", O: "Off" },
-  ar: { M: "صباح", A: "عصر", N: "ليل", O: "راحة" }
+  en: { M: "M", A: "A", N: "N", O: "", SL:"SL", VL:"VL", EL:"EL" },
+  ar: { M: "ص", A: "ع", N: "ل", O: "", SL:"م", VL:"إ", EL:"ط" }
 };
 const days = {
   en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   ar: ["أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"]
 };
-// Stats Labels
-const statLabels = {
-  en: { M: "Morn", A: "Aft", N: "Ngt", O: "Off" },
-  ar: { M: "ص", A: "ع", N: "ل", O: "ر" }
+const statsLabels = {
+  en: { M: "Morn", A: "Aft", N: "Night", SL: "Sick", VL: "Vacation", EL: "Emerg" },
+  ar: { M: "صباح", A: "عصر", N: "ليل", SL: "مرضية", VL: "اجازة", EL: "طارئة" }
 };
 
-// Reference: 15 Jan 2026 => A=M
 const referenceDate = new Date(2026, 0, 15);
 
 // Holidays
@@ -234,8 +263,12 @@ const islamicEvents = {
 let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
+let selectedDateISO = null; // Used for the modal
 
-/* ---------- INITIAL SETUP ---------- */
+// Load User Leaves { "2026-01-20": "SL", ... }
+let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}");
+
+/* ---------- INIT ---------- */
 const params = new URLSearchParams(window.location.search);
 const linkGroup = params.get("group");
 if (linkGroup) {
@@ -243,17 +276,15 @@ if (linkGroup) {
   if (map[linkGroup.toUpperCase()] !== undefined) localStorage.setItem("group", map[linkGroup.toUpperCase()]);
 }
 
-// Default to -1 (All) if nothing saved
 let savedGroup = localStorage.getItem("group");
 if(savedGroup === null) savedGroup = "-1";
-
 groupSelect.value = savedGroup;
 if (linkGroup) groupSelect.disabled = true;
 
 /* ---------- FUNCTIONS ---------- */
 function updateThemeColor(isDark) {
-  const themeMeta = document.getElementById("meta-theme-color");
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#000000" : "#f2f2f7");
+  const meta = document.getElementById("meta-theme-color");
+  if(meta) meta.content = isDark ? "#000000" : "#f2f2f7";
 }
 function saveGroup() { localStorage.setItem("group", groupSelect.value); render(); }
 function toggleLang() {
@@ -279,79 +310,66 @@ function shareLink() {
   navigator.clipboard.writeText(url).then(() => alert(lang === "ar" ? "تم نسخ الرابط!" : "Link copied!"));
 }
 
-/* --- EXPORT FUNCTION --- */
-function exportToCalendar() {
-  const selected = parseInt(groupSelect.value);
-  if(selected === -1) {
-    alert(lang === "ar" ? "يرجى اختيار مجموعة أولاً" : "Please select a specific Group first.");
+/* --- LEAVE MANAGEMENT --- */
+function openLeaveModal(isoDate, dayNum) {
+  // Only allow editing if a group is selected
+  if(parseInt(groupSelect.value) === -1) {
+    alert(lang==="ar" ? "اختر مجموعة أولاً" : "Please select a Group first");
     return;
   }
-  // (Simple export logic reused for brevity)
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MyShifts//EN\n";
-  const times = { M: "070000/150000", A: "140000/220000", N: "220000/060000" };
+  selectedDateISO = isoDate;
+  document.getElementById("leaveModalTitle").innerText = `${dayNum} - ${lang==="ar"?"تعديل":"Edit Status"}`;
+  document.getElementById("leaveModal").classList.add("show");
+}
+
+function closeLeaveModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById("leaveModal").classList.remove("show");
+}
+
+function setLeave(type) {
+  if(!selectedDateISO) return;
   
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d);
-    date.setHours(0,0,0,0);
-    const diff = Math.floor((date - referenceDate) / 86400000);
-    const idx = ((diff + selected + 5) % 5 + 5) % 5;
-    const code = shiftCodes[idx];
-    if(code === "O" || !times[code]) continue;
-    
-    const [startT, endT] = times[code].split('/');
-    const yStr = date.getFullYear();
-    const mStr = String(date.getMonth()+1).padStart(2,'0');
-    const dStr = String(date.getDate()).padStart(2,'0');
-    const ds = `${yStr}${mStr}${dStr}`;
-    
-    ics += `BEGIN:VEVENT\nSUMMARY:${shiftFull[lang][code]}\nDTSTART:${ds}T${startT}\nDTEND:${ds}T${endT}\nEND:VEVENT\n`;
+  if(type === null) {
+    delete userLeaves[selectedDateISO]; // Clear
+  } else {
+    userLeaves[selectedDateISO] = type; // Set (SL, VL, EL)
   }
-  ics += "END:VCALENDAR";
-  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `shifts.ics`;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
-
-/* --- SWIPE --- */
-let touchStartX = 0, touchEndX = 0;
-const wrap = document.getElementById("calendarWrapper");
-wrap.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
-wrap.addEventListener('touchend', e => {
-  touchEndX = e.changedTouches[0].screenX;
-  if(touchEndX < touchStartX - 50) changeMonth(1);
-  if(touchEndX > touchStartX + 50) changeMonth(-1);
-});
-
-/* --- PICKER --- */
-function toggleDatePicker() {
-  const p = document.getElementById("datePickerContainer");
-  p.classList.toggle("show");
-  if(p.classList.contains("show")) {
-    const mSel = document.getElementById("pickerMonth"), ySel = document.getElementById("pickerYear");
-    mSel.innerHTML=""; ySel.innerHTML="";
-    for(let i=0;i<12;i++) {
-      let opt = new Option(new Date(2000, i, 1).toLocaleString(lang, {month:"short"}), i);
-      if(i===currentDate.getMonth()) opt.selected=true; mSel.add(opt);
-    }
-    const cy = currentDate.getFullYear();
-    for(let i=cy-5;i<=cy+5;i++){
-      let opt = new Option(i, i);
-      if(i===cy) opt.selected=true; ySel.add(opt);
-    }
-  }
-}
-function applyDate() {
-  currentDate = new Date(document.getElementById("pickerYear").value, document.getElementById("pickerMonth").value, 1);
-  document.getElementById("datePickerContainer").classList.remove("show");
+  
+  localStorage.setItem("leaves", JSON.stringify(userLeaves));
+  closeLeaveModal();
   render();
 }
 
-/* ---------- RENDER GRID ---------- */
+/* --- DATE PICKER --- */
+function toggleDatePicker() {
+  const p = document.getElementById("datePickerContainer");
+  p.classList.add("show");
+  
+  const mSel = document.getElementById("pickerMonth"), ySel = document.getElementById("pickerYear");
+  mSel.innerHTML=""; ySel.innerHTML="";
+  
+  for(let i=0;i<12;i++) {
+    let opt = new Option(new Date(2000, i, 1).toLocaleString(lang, {month:"short"}), i);
+    if(i===currentDate.getMonth()) opt.selected=true; mSel.add(opt);
+  }
+  const cy = currentDate.getFullYear();
+  for(let i=cy-5;i<=cy+5;i++){
+    let opt = new Option(i, i);
+    if(i===cy) opt.selected=true; ySel.add(opt);
+  }
+}
+function closePicker(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById("datePickerContainer").classList.remove("show");
+}
+function applyDate() {
+  currentDate = new Date(document.getElementById("pickerYear").value, document.getElementById("pickerMonth").value, 1);
+  closePicker();
+  render();
+}
+
+/* --- RENDER LOGIC --- */
 function render() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -360,51 +378,65 @@ function render() {
   monthTitle.innerText = currentDate.toLocaleString(lang, { month: "long", year: "numeric" });
   document.getElementById("jumpText").innerText = lang === "ar" ? "اضغط لتغيير التاريخ" : "Tap to change date";
 
-  // 1. Render Header (Days of week)
+  // Header
   const head = document.getElementById("daysHeader");
   head.innerHTML = "";
   days[lang].forEach(d => {
     const el = document.createElement("div");
-    el.innerText = d.substring(0,3); // Shorten day name
+    el.innerText = d.substring(0,3);
     head.appendChild(el);
   });
 
-  // 2. Render Body
+  // Body
   const body = document.getElementById("calendarBody");
   body.innerHTML = "";
   
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const events = islamicEvents[year];
   const today = new Date(); today.setHours(0,0,0,0);
-  const stats = { M:0, A:0, N:0, O:0 };
+  
+  // Stats Counters
+  const stats = { M:0, A:0, N:0, SL:0, VL:0, EL:0 };
 
-  // Padding Cells (Empty days before the 1st)
+  // Padding
   for(let i=0; i<firstDay; i++) {
-    const empty = document.createElement("div");
-    empty.className = "day-cell empty-cell";
-    body.appendChild(empty);
+    body.appendChild(document.createElement("div")); // Empty
   }
 
-  // Day Cells
+  // Days
   for(let d=1; d<=daysInMonth; d++) {
     const date = new Date(year, month, d);
     date.setHours(0,0,0,0);
-    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    // Fix timezone offset for Key string
+    const yStr = date.getFullYear();
+    const mStr = String(date.getMonth() + 1).padStart(2, '0');
+    const dStr = String(date.getDate()).padStart(2, '0');
+    const iso = `${yStr}-${mStr}-${dStr}`;
     
-    // Calculate Shift
-    let shiftCode = "O"; // Default Off
-    let shiftClass = "";
+    let displayCode = "O";
+    let displayClass = "";
     
+    // 1. Calculate Standard Shift
     if (selected !== -1) {
       const diff = Math.floor((date - referenceDate) / 86400000);
       const idx = ((diff + selected + 5) % 5 + 5) % 5;
-      shiftCode = shiftCodes[idx];
-      shiftClass = shiftCode; // Class controls background color
-      stats[shiftCode]++;
+      displayCode = shiftCodes[idx];
+      
+      // 2. Check for User Override (Leaves)
+      if (userLeaves[iso]) {
+        displayCode = userLeaves[iso]; // e.g. "SL"
+      }
+      
+      displayClass = displayCode;
+      
+      // Count Stats (only if not 'O')
+      if (stats[displayCode] !== undefined) {
+        stats[displayCode]++;
+      }
     }
 
-    // Holiday Check
+    // Holidays
     let hName = "", hClass = "";
     if (events) {
       if (iso >= events.ramadanStart && iso <= events.ramadanEnd) { hName = lang==="ar"?"رمضان":"Ramadan"; hClass="ramadan-tag"; }
@@ -413,41 +445,53 @@ function render() {
       else if (iso >= events.eidAdhaStart && iso <= events.eidAdhaEnd) { hName = lang==="ar"?"عيد الأضحى":"Eid Adha"; hClass="eid-tag"; }
     }
 
-    // Build Cell
     const cell = document.createElement("div");
-    cell.className = `day-cell ${shiftClass}`;
+    cell.className = `day-cell ${displayClass}`;
     if(date.getTime() === today.getTime()) cell.classList.add("today");
+    
+    // On Click -> Open Modal
+    cell.onclick = () => openLeaveModal(iso, d);
 
-    // Inner HTML
     let content = `<div class="date-num">${d}</div>`;
-    
-    // Only show shift Letter if a group is selected
-    if(selected !== -1) {
-      content += `<div class="shift-text">${shiftShort[lang][shiftCode]}</div>`;
+    if(selected !== -1 && displayCode !== "O") {
+      content += `<div class="shift-text">${shiftShort[lang][displayCode]}</div>`;
     }
-    
-    if(hName) {
-      content += `<div class="holiday-bar ${hClass}">${hName}</div>`;
-    }
+    if(hName) content += `<div class="holiday-bar ${hClass}">${hName}</div>`;
 
     cell.innerHTML = content;
     body.appendChild(cell);
   }
 
-  // Update Stats Bar
+  // Render Stats
   const statsBar = document.getElementById("statsBar");
   if (selected !== -1) {
     statsBar.style.display = "flex";
-    statsBar.innerHTML = `
-      <div class="stat-item"><div class="stat-dot" style="background:#ffe599"></div> ${stats.M} ${statLabels[lang].M}</div>
-      <div class="stat-item"><div class="stat-dot" style="background:#9fc5e8"></div> ${stats.A} ${statLabels[lang].A}</div>
-      <div class="stat-item"><div class="stat-dot" style="background:#8e7cc3"></div> ${stats.N} ${statLabels[lang].N}</div>
-      <div class="stat-item"><div class="stat-dot" style="background:#ccc"></div> ${stats.O} ${statLabels[lang].O}</div>
+    // Standard
+    let html = `
+      <div class="stat-item"><div class="stat-dot" style="background:#ffe599"></div>${stats.M} ${statsLabels[lang].M}</div>
+      <div class="stat-item"><div class="stat-dot" style="background:#9fc5e8"></div>${stats.A} ${statsLabels[lang].A}</div>
+      <div class="stat-item"><div class="stat-dot" style="background:#8e7cc3"></div>${stats.N} ${statsLabels[lang].N}</div>
     `;
+    // Add Leaves only if they exist > 0
+    if(stats.SL > 0) html += `<div class="stat-item"><div class="stat-dot" style="background:#ffb3b3"></div><strong>${stats.SL} ${statsLabels[lang].SL}</strong></div>`;
+    if(stats.VL > 0) html += `<div class="stat-item"><div class="stat-dot" style="background:#b3ffb3"></div><strong>${stats.VL} ${statsLabels[lang].VL}</strong></div>`;
+    if(stats.EL > 0) html += `<div class="stat-item"><div class="stat-dot" style="background:#ffffb3"></div><strong>${stats.EL} ${statsLabels[lang].EL}</strong></div>`;
+    
+    statsBar.innerHTML = html;
   } else {
     statsBar.style.display = "none";
   }
 }
+
+// Swipe
+let touchStartX = 0, touchEndX = 0;
+const wrap = document.getElementById("calendarWrapper");
+wrap.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
+wrap.addEventListener('touchend', e => {
+  touchEndX = e.changedTouches[0].screenX;
+  if(touchEndX < touchStartX - 50) changeMonth(1);
+  if(touchEndX > touchStartX + 50) changeMonth(-1);
+});
 
 // Init
 if(dark) document.body.classList.add("dark");
