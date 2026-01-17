@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>My Shifts</title>
+<title>My Shifts Calendar</title>
 <meta name="apple-mobile-web-app-title" content="My Shifts">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,7 +15,7 @@
 :root {
   --bg: #f2f2f7; --card: #ffffff; --text: #000000;
   --header-bg: #f2f2f7; --border: #e5e5ea;
-  --primary: #007AFF; --highlight: #ff9500;
+  --primary: #007AFF; 
   --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
 }
 body.dark {
@@ -27,7 +27,7 @@ body {
   margin: 0; padding: 12px;
   font-family: var(--font-stack);
   background: var(--bg); color: var(--text);
-  padding-bottom: 80px; /* Extra space for stats bar */
+  padding-bottom: 90px; /* Space for stats bar */
   transition: background 0.3s ease;
 }
 
@@ -50,14 +50,86 @@ button:active { transform: scale(0.96); }
 /* --- Navigation --- */
 .month-nav {
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--card); padding: 6px; border-radius: 12px;
-  margin-bottom: 16px;
+  background: var(--card); padding: 8px 12px; border-radius: 12px;
+  margin-bottom: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-.month-nav h2 { margin: 0; font-size: 17px; font-weight: 700; cursor: pointer; }
+.month-nav h2 { margin: 0; font-size: 18px; font-weight: 700; cursor: pointer; }
 .jump-hint { font-size: 10px; color: var(--primary); display: block; margin-top: 2px; }
 
-/* Date Picker (Hidden by default) */
+/* --- GRID CALENDAR STRUCTURE --- */
+.calendar-wrapper {
+  background: var(--card); border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  overflow: hidden; border: 1px solid var(--border);
+  position: relative;
+  touch-action: pan-y;
+}
+
+/* 7 Column Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 equal columns */
+  text-align: center;
+}
+
+/* Day Names Header (Sun, Mon...) */
+.day-names {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  font-weight: 700; color: var(--text); opacity: 0.6;
+  font-size: 12px; padding: 10px 0;
+}
+
+/* Individual Day Cell */
+.day-cell {
+  aspect-ratio: 0.85; /* Makes them slightly tall squares */
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  display: flex; flex-direction: column; 
+  align-items: center; justify-content: flex-start;
+  padding-top: 6px;
+}
+.day-cell:nth-child(7n) { border-right: none; } /* Remove right border on last col */
+
+/* Date Number */
+.date-num { font-size: 14px; font-weight: 600; z-index: 2; }
+.today .date-num { 
+  background: var(--primary); color: white; 
+  border-radius: 50%; width: 24px; height: 24px; line-height: 24px;
+}
+
+/* Shift Text (M/A/N) */
+.shift-text {
+  font-size: 18px; font-weight: 800;
+  margin-top: 4px; z-index: 2;
+}
+
+/* Holiday Bar (Bottom of cell) */
+.holiday-bar {
+  position: absolute; bottom: 4px; left: 2px; right: 2px;
+  font-size: 8px; border-radius: 4px; padding: 2px 0;
+  color: white; font-weight: bold;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ramadan-tag { background: #34c759; }
+.eid-tag { background: #ff3b30; }
+
+/* Shift Colors (Background of the whole cell) */
+.M { background: #ffe599; color: #5b4812; }
+.A { background: #9fc5e8; color: #1e3f5e; }
+.N { background: #8e7cc3; color: white; }
+.O { background: transparent; } /* Off days are clear */
+
+body.dark .M { background: #665c3d; color: #fff; }
+body.dark .A { background: #3a4e63; color: #fff; }
+body.dark .N { background: #5a4f85; color: #fff; }
+
+/* Empty cells for padding */
+.empty-cell { background: var(--header-bg); opacity: 0.3; }
+
+/* --- DATE PICKER --- */
 #datePickerContainer {
   display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
   background: var(--card); padding: 15px; border-radius: 12px;
@@ -68,89 +140,14 @@ button:active { transform: scale(0.96); }
 .picker-row { display: flex; gap: 10px; margin-bottom: 10px; }
 .picker-row select { width: 100%; }
 
-/* --- Calendar Wrapper --- */
-.calendar-wrapper {
-  background: var(--card); border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  overflow: hidden; border: 1px solid var(--border);
-  position: relative;
-  touch-action: pan-y; /* Allow vertical scroll, handle horizontal in JS */
-}
-
-.header, .row {
-  display: grid;
-  grid-template-columns: 70px repeat(5, 1fr);
-  text-align: center; align-items: stretch;
-}
-
-/* FOCUS MODE */
-.calendar-wrapper.focus-mode .header,
-.calendar-wrapper.focus-mode .row {
-  grid-template-columns: 85px 1fr;
-}
-
-.header {
-  background: var(--header-bg); position: sticky; top: 0; z-index: 10;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px; font-weight: 800; opacity: 0.9;
-  backdrop-filter: blur(5px);
-}
-.header div { padding: 12px 0; }
-.row { border-bottom: 1px solid var(--border); }
-
-/* --- Date Cell --- */
-.date-cell {
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  font-weight: 700; font-size: 15px; padding: 6px 2px;
-  background: var(--card); border-right: 1px solid var(--border);
-}
-.day-name { font-size: 10px; opacity: 0.5; font-weight: 500; text-transform: uppercase; }
-
-/* Holiday Tags */
-.holiday-tag {
-  font-size: 9px; padding: 2px 4px; border-radius: 4px;
-  margin-top: 3px; white-space: nowrap; overflow: hidden; max-width: 100%;
-  color: white; font-weight: normal;
-}
-.ramadan-tag { background: #34c759; }
-.eid-tag { background: #ff3b30; }
-
-/* --- Shift Cells --- */
-.shift-cell {
-  display: flex; justify-content: center; align-items: center;
-  font-weight: 600; font-size: 14px; padding: 10px 0;
-}
-.calendar-wrapper.focus-mode .shift-cell { font-size: 18px; font-weight: 700; }
-.col-hidden { display: none; }
-
-/* Colors */
-.M { background: #ffe599; color: #5b4812; }
-.A { background: #9fc5e8; color: #1e3f5e; }
-.N { background: #8e7cc3; color: white; }
-.O { background: transparent; color: var(--text); opacity: 0.3; }
-
-body.dark .M { background: #665c3d; color: #fff; }
-body.dark .A { background: #3a4e63; color: #fff; }
-body.dark .N { background: #5a4f85; color: #fff; }
-
-/* Markers */
-.today-row .date-cell { color: var(--primary); }
-.today-row { position: relative; }
-.today-row::after {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-  background: var(--primary);
-}
-
-/* --- STATISTICS BAR (Fixed Bottom) --- */
+/* --- STATS BAR --- */
 .stats-bar {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
   background: var(--card); border: 1px solid var(--border);
   padding: 10px 20px; border-radius: 50px;
   display: flex; gap: 15px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-  z-index: 100;
-  font-size: 13px; font-weight: 600;
-  white-space: nowrap;
+  z-index: 100; font-size: 13px; font-weight: 600; white-space: nowrap;
 }
 .stat-item { display: flex; align-items: center; gap: 4px; }
 .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -162,8 +159,7 @@ body.dark .N { background: #5a4f85; color: #fff; }
 
 <div class="controls-area">
   <select id="groupSelect" onchange="saveGroup()">
-    <option value="-1">All Groups</option>
-    <option value="0">Group A</option>
+    <option value="-1">Select Group...</option> <option value="0">Group A</option>
     <option value="1">Group B</option>
     <option value="2">Group C</option>
     <option value="3">Group D</option>
@@ -188,25 +184,26 @@ body.dark .N { background: #5a4f85; color: #fff; }
 </div>
 
 <div id="datePickerContainer">
-  <div class="picker-row">
-    <select id="pickerMonth"></select>
-    <select id="pickerYear"></select>
-  </div>
+  <div class="picker-row"><select id="pickerMonth"></select><select id="pickerYear"></select></div>
   <button onclick="applyDate()" style="width:100%; background:var(--primary); color:white; padding:10px; border-radius:8px; border:none;">Go</button>
 </div>
 
 <div class="calendar-wrapper" id="calendarWrapper">
-  <div class="header" id="calHeader"></div>
-  <div id="calendarBody"></div>
+  <div class="calendar-grid day-names" id="daysHeader"></div>
+  <div class="calendar-grid" id="calendarBody"></div>
 </div>
 
-<div class="stats-bar" id="statsBar" style="display:none">
-  </div>
+<div class="stats-bar" id="statsBar" style="display:none"></div>
 
 <script>
 /* ---------- DATA ---------- */
 const shiftCodes = ["M", "A", "N", "O", "O"];
-const shiftNames = {
+// Short names for the Grid View (just 1 letter or short word)
+const shiftShort = {
+  en: { M: "M", A: "A", N: "N", O: "" },
+  ar: { M: "ص", A: "ع", N: "ل", O: "" }
+};
+const shiftFull = {
   en: { M: "Morning", A: "Afternoon", N: "Night", O: "Off" },
   ar: { M: "صباح", A: "عصر", N: "ليل", O: "راحة" }
 };
@@ -216,26 +213,20 @@ const days = {
 };
 // Stats Labels
 const statLabels = {
-  en: { M: "Morn", A: "Aft", N: "Night", O: "Off" },
-  ar: { M: "صباح", A: "عصر", N: "ليل", O: "راحة" }
+  en: { M: "Morn", A: "Aft", N: "Ngt", O: "Off" },
+  ar: { M: "ص", A: "ع", N: "ل", O: "ر" }
 };
 
 // Reference: 15 Jan 2026 => A=M
 const referenceDate = new Date(2026, 0, 15);
 
-// Holidays - UPDATED FOR EID RANGES
+// Holidays
 const islamicEvents = {
   2026: {
-    ramadanStart: "2026-02-18",
-    ramadanEnd: "2026-03-19",
-    // Eid Fitr: 3 Days
-    eidFitrStart: "2026-03-20",
-    eidFitrEnd: "2026-03-22",
-    // Arafah
+    ramadanStart: "2026-02-18", ramadanEnd: "2026-03-19",
+    eidFitrStart: "2026-03-20", eidFitrEnd: "2026-03-22",
     arafah: "2026-05-26",
-    // Eid Adha: 4 Days
-    eidAdhaStart: "2026-05-27",
-    eidAdhaEnd: "2026-05-30"
+    eidAdhaStart: "2026-05-27", eidAdhaEnd: "2026-05-30"
   }
 };
 
@@ -244,59 +235,42 @@ let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
 
-/* ---------- URL HANDLING ---------- */
+/* ---------- INITIAL SETUP ---------- */
 const params = new URLSearchParams(window.location.search);
 const linkGroup = params.get("group");
 if (linkGroup) {
   const map = { A: 0, B: 1, C: 2, D: 3, E: 4 };
   if (map[linkGroup.toUpperCase()] !== undefined) localStorage.setItem("group", map[linkGroup.toUpperCase()]);
 }
-const savedGroup = localStorage.getItem("group") ?? "-1";
+
+// Default to -1 (All) if nothing saved
+let savedGroup = localStorage.getItem("group");
+if(savedGroup === null) savedGroup = "-1";
+
 groupSelect.value = savedGroup;
 if (linkGroup) groupSelect.disabled = true;
-
-/* ---------- SWIPE LOGIC ---------- */
-let touchStartX = 0;
-let touchEndX = 0;
-
-const wrapper = document.getElementById("calendarWrapper");
-wrapper.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, false);
-wrapper.addEventListener('touchend', e => {
-  touchEndX = e.changedTouches[0].screenX;
-  handleSwipe();
-}, false);
-
-function handleSwipe() {
-  if (touchEndX < touchStartX - 50) changeMonth(1); // Swipe Left -> Next
-  if (touchEndX > touchStartX + 50) changeMonth(-1); // Swipe Right -> Prev
-}
 
 /* ---------- FUNCTIONS ---------- */
 function updateThemeColor(isDark) {
   const themeMeta = document.getElementById("meta-theme-color");
   if (themeMeta) themeMeta.setAttribute("content", isDark ? "#000000" : "#f2f2f7");
 }
-
 function saveGroup() { localStorage.setItem("group", groupSelect.value); render(); }
-
 function toggleLang() {
   lang = lang === "en" ? "ar" : "en";
   localStorage.setItem("lang", lang);
   render();
 }
-
 function toggleDark() {
   dark = !dark;
   localStorage.setItem("dark", dark);
   document.body.classList.toggle("dark");
   updateThemeColor(dark);
 }
-
 function changeMonth(n) {
   currentDate.setMonth(currentDate.getMonth() + n);
   render();
 }
-
 function shareLink() {
   const gVal = parseInt(groupSelect.value);
   const groups = ["A","B","C","D","E"];
@@ -305,196 +279,162 @@ function shareLink() {
   navigator.clipboard.writeText(url).then(() => alert(lang === "ar" ? "تم نسخ الرابط!" : "Link copied!"));
 }
 
-/* --- EXPORT TO CALENDAR (ICS) --- */
+/* --- EXPORT FUNCTION --- */
 function exportToCalendar() {
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const selected = parseInt(groupSelect.value);
-  
   if(selected === -1) {
     alert(lang === "ar" ? "يرجى اختيار مجموعة أولاً" : "Please select a specific Group first.");
     return;
   }
-
-  let icsContent = 
-`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//MyShifts//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-`;
-
-  const shiftTimes = {
-    M: { start: "070000", end: "150000" }, 
-    A: { start: "140000", end: "220000" }, 
-    N: { start: "220000", end: "060000" }, 
-  };
-
+  // (Simple export logic reused for brevity)
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MyShifts//EN\n";
+  const times = { M: "070000/150000", A: "140000/220000", N: "220000/060000" };
+  
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     date.setHours(0,0,0,0);
-    
     const diff = Math.floor((date - referenceDate) / 86400000);
     const idx = ((diff + selected + 5) % 5 + 5) % 5;
     const code = shiftCodes[idx];
-
-    if(code === "O" || !shiftTimes[code]) continue;
-    const sTime = shiftTimes[code];
+    if(code === "O" || !times[code]) continue;
     
-    // Format Date YYYYMMDD
+    const [startT, endT] = times[code].split('/');
     const yStr = date.getFullYear();
-    const mStr = String(date.getMonth() + 1).padStart(2, '0');
-    const dStr = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${yStr}${mStr}${dStr}`;
-
-    icsContent += 
-`BEGIN:VEVENT
-SUMMARY:${shiftNames[lang][code]}
-DTSTART:${dateStr}T${sTime.start}
-DTEND:${dateStr}T${sTime.end}
-DESCRIPTION:Shift Group ${["A","B","C","D","E"][selected]}
-STATUS:CONFIRMED
-END:VEVENT
-`;
+    const mStr = String(date.getMonth()+1).padStart(2,'0');
+    const dStr = String(date.getDate()).padStart(2,'0');
+    const ds = `${yStr}${mStr}${dStr}`;
+    
+    ics += `BEGIN:VEVENT\nSUMMARY:${shiftFull[lang][code]}\nDTSTART:${ds}T${startT}\nDTEND:${ds}T${endT}\nEND:VEVENT\n`;
   }
-  icsContent += "END:VCALENDAR";
-
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  ics += "END:VCALENDAR";
+  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
   const link = document.createElement('a');
-  link.href = window.URL.createObjectURL(blob);
-  link.setAttribute('download', `shifts-${year}-${month+1}.ics`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  link.href = URL.createObjectURL(blob);
+  link.download = `shifts.ics`;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
-/* --- Date Picker Logic --- */
+/* --- SWIPE --- */
+let touchStartX = 0, touchEndX = 0;
+const wrap = document.getElementById("calendarWrapper");
+wrap.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
+wrap.addEventListener('touchend', e => {
+  touchEndX = e.changedTouches[0].screenX;
+  if(touchEndX < touchStartX - 50) changeMonth(1);
+  if(touchEndX > touchStartX + 50) changeMonth(-1);
+});
+
+/* --- PICKER --- */
 function toggleDatePicker() {
-  const picker = document.getElementById("datePickerContainer");
-  if (picker.style.display === "block") {
-    picker.style.display = "none";
-  } else {
-    const mSel = document.getElementById("pickerMonth");
-    const ySel = document.getElementById("pickerYear");
-    mSel.innerHTML = ""; ySel.innerHTML = "";
-    
-    for(let i=0; i<12; i++) {
-      let opt = document.createElement("option");
-      opt.value = i;
-      opt.innerText = new Date(2000, i, 1).toLocaleString(lang, {month:"short"});
-      if(i === currentDate.getMonth()) opt.selected = true;
-      mSel.appendChild(opt);
+  const p = document.getElementById("datePickerContainer");
+  p.classList.toggle("show");
+  if(p.classList.contains("show")) {
+    const mSel = document.getElementById("pickerMonth"), ySel = document.getElementById("pickerYear");
+    mSel.innerHTML=""; ySel.innerHTML="";
+    for(let i=0;i<12;i++) {
+      let opt = new Option(new Date(2000, i, 1).toLocaleString(lang, {month:"short"}), i);
+      if(i===currentDate.getMonth()) opt.selected=true; mSel.add(opt);
     }
     const cy = currentDate.getFullYear();
-    for(let i=cy-5; i<=cy+5; i++) {
-      let opt = document.createElement("option");
-      opt.value = i;
-      opt.innerText = i;
-      if(i === cy) opt.selected = true;
-      ySel.appendChild(opt);
+    for(let i=cy-5;i<=cy+5;i++){
+      let opt = new Option(i, i);
+      if(i===cy) opt.selected=true; ySel.add(opt);
     }
-    picker.style.display = "block";
   }
 }
-
 function applyDate() {
-  const m = parseInt(document.getElementById("pickerMonth").value);
-  const y = parseInt(document.getElementById("pickerYear").value);
-  currentDate = new Date(y, m, 1);
-  document.getElementById("datePickerContainer").style.display = "none";
+  currentDate = new Date(document.getElementById("pickerYear").value, document.getElementById("pickerMonth").value, 1);
+  document.getElementById("datePickerContainer").classList.remove("show");
   render();
 }
 
-/* ---------- RENDER ENGINE ---------- */
+/* ---------- RENDER GRID ---------- */
 function render() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const selected = parseInt(groupSelect.value);
   
-  // Update Text
   monthTitle.innerText = currentDate.toLocaleString(lang, { month: "long", year: "numeric" });
   document.getElementById("jumpText").innerText = lang === "ar" ? "اضغط لتغيير التاريخ" : "Tap to change date";
 
-  // Focus Mode
-  const wrap = document.getElementById("calendarWrapper");
-  if (selected !== -1) wrap.classList.add("focus-mode");
-  else wrap.classList.remove("focus-mode");
-
-  // Header
-  const groups = ["A", "B", "C", "D", "E"];
-  let headerHTML = `<div>${lang==="ar"?"تاريخ":"Date"}</div>`;
-  groups.forEach((g, idx) => {
-    const hidden = (selected !== -1 && selected !== idx) ? "col-hidden" : "";
-    headerHTML += `<div class="${hidden}">${g}</div>`;
+  // 1. Render Header (Days of week)
+  const head = document.getElementById("daysHeader");
+  head.innerHTML = "";
+  days[lang].forEach(d => {
+    const el = document.createElement("div");
+    el.innerText = d.substring(0,3); // Shorten day name
+    head.appendChild(el);
   });
-  document.getElementById("calHeader").innerHTML = headerHTML;
 
-  // Body & Stats Calculation
-  const calBody = document.getElementById("calendarBody");
-  calBody.innerHTML = "";
+  // 2. Render Body
+  const body = document.getElementById("calendarBody");
+  body.innerHTML = "";
   
-  const stats = { M:0, A:0, N:0, O:0 }; 
-  
-  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const events = islamicEvents[year];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const stats = { M:0, A:0, N:0, O:0 };
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d);
-    date.setHours(0,0,0,0);
-    
-    // Manual Format YYYY-MM-DD
-    const yStr = date.getFullYear();
-    const mStr = String(date.getMonth() + 1).padStart(2, '0');
-    const dStr = String(date.getDate()).padStart(2, '0');
-    const iso = `${yStr}-${mStr}-${dStr}`;
-
-    // Holiday Logic (UPDATED FOR RANGES)
-    let holidayName = "", holidayClass = "";
-    if (events) {
-      if (iso >= events.ramadanStart && iso <= events.ramadanEnd) {
-        holidayName = lang === "ar" ? "رمضان" : "Ramadan"; holidayClass = "ramadan-tag";
-      } else if (iso >= events.eidFitrStart && iso <= events.eidFitrEnd) {
-        holidayName = lang === "ar" ? "عيد الفطر" : "Eid Fitr"; holidayClass = "eid-tag";
-      } else if (iso === events.arafah) {
-        holidayName = lang === "ar" ? "عرفة" : "Arafah"; holidayClass = "eid-tag";
-      } else if (iso >= events.eidAdhaStart && iso <= events.eidAdhaEnd) {
-        holidayName = lang === "ar" ? "عيد الأضحى" : "Eid Adha"; holidayClass = "eid-tag";
-      }
-    }
-
-    const row = document.createElement("div");
-    row.className = "row";
-    if (date.getTime() === today.getTime()) row.classList.add("today-row");
-
-    let tagHTML = holidayName ? `<div class="holiday-tag ${holidayClass}">${holidayName}</div>` : "";
-    row.innerHTML = `<div class="date-cell"><span>${d}</span><span class="day-name">${days[lang][date.getDay()]}</span>${tagHTML}</div>`;
-
-    const diff = Math.floor((date - referenceDate) / 86400000);
-    
-    // Render Shifts
-    for (let g = 0; g < 5; g++) {
-      const hidden = (selected !== -1 && selected !== g) ? "col-hidden" : "";
-      
-      const idx = ((diff + g + 5) % 5 + 5) % 5;
-      const code = shiftCodes[idx];
-      const shiftName = shiftNames[lang][code];
-
-      // If this is the selected group (or viewing all), count stats
-      if (selected === -1 || selected === g) {
-        stats[code]++;
-      }
-
-      const cell = document.createElement("div");
-      cell.className = `shift-cell ${code} ${hidden}`;
-      cell.innerText = shiftName;
-      row.appendChild(cell);
-    }
-    calBody.appendChild(row);
+  // Padding Cells (Empty days before the 1st)
+  for(let i=0; i<firstDay; i++) {
+    const empty = document.createElement("div");
+    empty.className = "day-cell empty-cell";
+    body.appendChild(empty);
   }
 
-  // Render Stats Bar (Only if a group is selected)
+  // Day Cells
+  for(let d=1; d<=daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    date.setHours(0,0,0,0);
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    
+    // Calculate Shift
+    let shiftCode = "O"; // Default Off
+    let shiftClass = "";
+    
+    if (selected !== -1) {
+      const diff = Math.floor((date - referenceDate) / 86400000);
+      const idx = ((diff + selected + 5) % 5 + 5) % 5;
+      shiftCode = shiftCodes[idx];
+      shiftClass = shiftCode; // Class controls background color
+      stats[shiftCode]++;
+    }
+
+    // Holiday Check
+    let hName = "", hClass = "";
+    if (events) {
+      if (iso >= events.ramadanStart && iso <= events.ramadanEnd) { hName = lang==="ar"?"رمضان":"Ramadan"; hClass="ramadan-tag"; }
+      else if (iso >= events.eidFitrStart && iso <= events.eidFitrEnd) { hName = lang==="ar"?"عيد الفطر":"Eid Fitr"; hClass="eid-tag"; }
+      else if (iso === events.arafah) { hName = lang==="ar"?"عرفة":"Arafah"; hClass="eid-tag"; }
+      else if (iso >= events.eidAdhaStart && iso <= events.eidAdhaEnd) { hName = lang==="ar"?"عيد الأضحى":"Eid Adha"; hClass="eid-tag"; }
+    }
+
+    // Build Cell
+    const cell = document.createElement("div");
+    cell.className = `day-cell ${shiftClass}`;
+    if(date.getTime() === today.getTime()) cell.classList.add("today");
+
+    // Inner HTML
+    let content = `<div class="date-num">${d}</div>`;
+    
+    // Only show shift Letter if a group is selected
+    if(selected !== -1) {
+      content += `<div class="shift-text">${shiftShort[lang][shiftCode]}</div>`;
+    }
+    
+    if(hName) {
+      content += `<div class="holiday-bar ${hClass}">${hName}</div>`;
+    }
+
+    cell.innerHTML = content;
+    body.appendChild(cell);
+  }
+
+  // Update Stats Bar
   const statsBar = document.getElementById("statsBar");
   if (selected !== -1) {
     statsBar.style.display = "flex";
@@ -509,10 +449,11 @@ function render() {
   }
 }
 
-/* ---------- INIT ---------- */
-if (dark) document.body.classList.add("dark");
+// Init
+if(dark) document.body.classList.add("dark");
 updateThemeColor(dark);
 render();
+
 </script>
 </body>
 </html>
