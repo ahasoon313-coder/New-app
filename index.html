@@ -222,16 +222,17 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 
     <div class="modal-title" style="font-size:14px; text-align:left; color:var(--primary);">Manual / Previous Records</div>
     <div style="background:var(--bg); padding:10px; border-radius:10px; margin-bottom:20px;">
+       <div style="font-size:11px; opacity:0.6; margin-bottom:10px;">(Anything before Jan 15 is ignored by auto-counter. Add old values here if needed)</div>
        <div class="manual-row">
-         <span>Sick Leaves (Add to Year):</span>
+         <span>Sick Leaves:</span>
          <input type="number" id="manSL" class="manual-input" placeholder="0" onchange="saveManual()">
        </div>
        <div class="manual-row">
-         <span>Emergency (Add to Year):</span>
+         <span>Emergency:</span>
          <input type="number" id="manEL" class="manual-input" placeholder="0" onchange="saveManual()">
        </div>
        <div class="manual-row">
-         <span>Permission (Used This Month):</span>
+         <span>Permission (This Month):</span>
          <input type="number" id="manPerm" class="manual-input" placeholder="Hrs" onchange="saveManual()">
        </div>
     </div>
@@ -268,7 +269,7 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
       </div>
     </div>
 
-    <div class="modal-title" style="font-size:14px; margin-top:10px;">Leaves (YTD + Manual)</div>
+    <div class="modal-title" style="font-size:14px; margin-top:10px;">Leaves (YTD)</div>
     <div class="stats-grid" id="leaveStatsGrid"></div>
 
     <button onclick="closeModal('yearlyModal')" style="width:100%; margin-top:20px; background:var(--border); padding:12px; border-radius:10px;">Close</button>
@@ -321,6 +322,9 @@ const statsLabels = {
 const colorKeys = ["M", "A", "N", "SL", "VL", "EL"];
 const defaultColors = { M:"#ffe599", A:"#9fc5e8", N:"#8e7cc3", SL:"#ffb3b3", VL:"#b3ffb3", EL:"#ffffb3" };
 const referenceDate = new Date(2026, 0, 15);
+// START COUNTING STATS FROM HERE
+const appStartDate = new Date(2026, 0, 15);
+
 const islamicEvents = {
   2026: {
     ramadanStart: "2026-02-18", ramadanEnd: "2026-03-19",
@@ -367,7 +371,7 @@ function saveManual() {
   manualStats.EL = parseInt(document.getElementById("manEL").value) || 0;
   manualStats.perm = parseFloat(document.getElementById("manPerm").value) || 0;
   localStorage.setItem("manual", JSON.stringify(manualStats));
-  render(); // Update Permission Bar immediately
+  render(); 
 }
 
 /* ---------- TIME TRACKING ---------- */
@@ -396,18 +400,15 @@ function clearTimeData(type) {
 
 /* ---------- SETTINGS ---------- */
 function openSettings() {
-  // Load Colors
   const list = document.getElementById("colorList"); list.innerHTML = "";
   colorKeys.forEach(k => { const c = customColors[k] || defaultColors[k]; list.innerHTML += `<div class="color-row"><span>${statsLabels[lang][k]}</span><input type="color" value="${c}" onchange="updateColor('${k}',this.value)"></div>`; });
-  // Load Manual Inputs
   document.getElementById("manSL").value = manualStats.SL || "";
   document.getElementById("manEL").value = manualStats.EL || "";
   document.getElementById("manPerm").value = manualStats.perm || "";
-  
   document.getElementById("settingsModal").classList.add("show");
 }
 
-/* ---------- YEARLY STATS ---------- */
+/* ---------- YEARLY STATS (FIXED DATE FILTER) ---------- */
 function showYearlyStats() {
   const selected=parseInt(groupSelect.value); if(selected===-1){alert("Select Group First"); return;}
   const year=currentDate.getFullYear(); const today=new Date(); today.setHours(0,0,0,0);
@@ -417,6 +418,10 @@ function showYearlyStats() {
 
   for(let d=1; d<=totalDays; d++) {
     const date=new Date(year,0,d);
+    
+    // SKIP ANYTHING BEFORE JAN 15
+    if(date < appStartDate) continue; 
+
     const iso=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     let code="O";
     if(userLeaves[iso]) code=userLeaves[iso];
@@ -433,11 +438,11 @@ function showYearlyStats() {
   stats.EL += (manualStats.EL || 0);
   
   const dh=Math.floor(totalDelay/60), dm=totalDelay%60;
-  document.getElementById("yearlyTitle").innerText = `${year} Report`;
+  document.getElementById("yearlyTitle").innerText = `${year} Report (From Jan 15)`;
   document.getElementById("daysWorkedVal").innerText = daysWorked;
   document.getElementById("daysLeftVal").innerText = daysLeft;
   document.getElementById("totalDelayVal").innerText = `${dh}h ${dm}m`;
-  document.getElementById("totalPermVal").innerText = `${totalPerm}h`; // Permissions are reset monthly, but total used is interesting.
+  document.getElementById("totalPermVal").innerText = `${totalPerm}h`;
 
   document.getElementById("leaveStatsGrid").innerHTML = `
     <div class="stat-box" style="background:var(--col-SL)"><span class="stat-val">${stats.SL}</span><span class="stat-lbl">${statsLabels[lang].SL}</span></div>
@@ -513,13 +518,10 @@ function render() {
     cell.innerHTML=content; body.appendChild(cell);
   }
   
-  // PERM BAR
   const permBar = document.getElementById("permBar");
   if(selected!==-1) {
     permBar.style.display="flex";
     const manualP = parseFloat(manualStats.perm || 0);
-    // Add manual perm ONLY if we are in the CURRENT month (optional logic, but here we just subtract it from the view)
-    // Actually, usually manual perm is for the current active month view
     const left = 12 - monthPermUsed - manualP;
     document.getElementById("permLeft").innerText = `${left}h Remaining`;
     permBar.style.background = left < 0 ? "#ff3b30" : "#007AFF";
