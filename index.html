@@ -87,7 +87,7 @@ button:active { transform: scale(0.96); }
 }
 .day-cell:nth-child(7n) { border-right: none; }
 
-/* TODAY HIGHLIGHT - NEW STYLE */
+/* TODAY HIGHLIGHT */
 .day-cell.today {
   box-shadow: inset 0 0 0 4px var(--primary); /* Thick blue frame */
   z-index: 5;
@@ -96,7 +96,6 @@ button:active { transform: scale(0.96); }
 .date-num { font-size: 14px; font-weight: 600; z-index: 2; pointer-events: none; }
 .today .date-num { 
   color: var(--primary); 
-  /* Removed circle background to reduce clutter, relying on the box frame */
 }
 .shift-text { font-size: 18px; font-weight: 800; margin-top: 4px; z-index: 2; pointer-events: none; }
 
@@ -146,6 +145,9 @@ button:active { transform: scale(0.96); }
 
 .manual-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
 .manual-input { width: 60px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); text-align: center; font-weight: bold; }
+.color-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+input[type="color"] { border: none; width: 40px; height: 30px; background: none; cursor: pointer; }
+
 .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .action-btn { padding: 15px; border-radius: 12px; font-weight: bold; border: 1px solid var(--border); background: var(--bg); color:var(--text); }
 
@@ -210,7 +212,7 @@ button:active { transform: scale(0.96); }
       <button onclick="exportToCalendar()" class="action-btn" style="grid-column:span 2">Export to Calendar 📅</button>
     </div>
 
-    <div class="modal-title" style="font-size:14px; text-align:left; color:var(--primary);">Data Backup (Save your data!)</div>
+    <div class="modal-title" style="font-size:14px; text-align:left; color:var(--primary);">Data Backup</div>
     <div class="action-grid" style="margin-bottom:20px;">
       <button onclick="backupData()" class="action-btn" style="background:#34c759; color:white; border:none;">Download Backup 📥</button>
       <button onclick="document.getElementById('fileInput').click()" class="action-btn" style="background:#ff9500; color:white; border:none;">Restore Data 📤</button>
@@ -223,8 +225,11 @@ button:active { transform: scale(0.96); }
        <div class="manual-row"><span>Emergency:</span><input type="number" id="manEL" class="manual-input" placeholder="0" onchange="saveManual()"></div>
        <div class="manual-row"><span>Permission (Month):</span><input type="number" id="manPerm" class="manual-input" placeholder="Hrs" onchange="saveManual()"></div>
     </div>
+
+    <div class="modal-title" style="font-size:14px; text-align:left">Customize Colors</div>
+    <div id="colorList" style="margin-bottom:15px;"></div>
     
-    <button onclick="resetColors()" style="margin-top:15px; font-size:12px; color:red; background:none; border:none; width:100%">Reset Colors</button>
+    <button onclick="resetColors()" style="font-size:12px; color:red; background:none; border:none; width:100%">Reset Colors</button>
   </div>
 </div>
 
@@ -266,7 +271,7 @@ button:active { transform: scale(0.96); }
       <button class="action-btn" style="background:var(--col-SL)" onclick="setLeave('SL')">Sick 🤒</button>
       <button class="action-btn" style="background:var(--col-VL)" onclick="setLeave('VL')">Vacation 🏖</button>
       <button class="action-btn" style="background:var(--col-EL)" onclick="setLeave('EL')">Emergency 🚨</button>
-      <button class="action-btn" onclick="setLeave(null)">Reset / Clear 🔄</button>
+      <button class="action-btn" onclick="setLeave(null)">Reset 🔄</button>
     </div>
     
     <div style="display:flex; gap:10px; margin-top:5px;">
@@ -300,7 +305,7 @@ const islamicEvents = {
 let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
-let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}"); // Stores Leaves AND Shift Swaps
+let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}");
 let userDelays = JSON.parse(localStorage.getItem("delays") || "{}");
 let userPerms = JSON.parse(localStorage.getItem("perms") || "{}");
 let customColors = JSON.parse(localStorage.getItem("colors") || "{}");
@@ -319,7 +324,7 @@ if (params.get("group")) groupSelect.disabled = true;
 /* CORE FUNCTIONS */
 function initColors() { colorKeys.forEach(k => { document.documentElement.style.setProperty(`--col-${k}`, customColors[k] || defaultColors[k]); }); }
 function updateColor(key, val) { customColors[key] = val; localStorage.setItem("colors", JSON.stringify(customColors)); document.documentElement.style.setProperty(`--col-${key}`, val); render(); }
-function resetColors() { customColors={}; localStorage.removeItem("colors"); initColors(); render(); }
+function resetColors() { customColors={}; localStorage.removeItem("colors"); initColors(); openSettings(); render(); }
 function saveGroup() { localStorage.setItem("group", groupSelect.value); render(); }
 function updateThemeColor(isDark) { const m=document.getElementById("meta-theme-color"); if(m) m.content=isDark?"#000000":"#f2f2f7"; }
 function toggleLang() { lang=lang==="en"?"ar":"en"; localStorage.setItem("lang",lang); render(); }
@@ -384,9 +389,23 @@ function clearTimeData(type) {
 
 /* SETTINGS & MODALS */
 function openSettings() {
+  // GENERATE COLOR PICKERS (Fixed Logic)
+  const list = document.getElementById("colorList");
+  list.innerHTML = "";
+  colorKeys.forEach(k => {
+    const c = customColors[k] || defaultColors[k];
+    list.innerHTML += `
+      <div class="color-row">
+        <span>${statsLabels[lang][k]}</span>
+        <input type="color" value="${c}" onchange="updateColor('${k}',this.value)">
+      </div>`;
+  });
+
+  // LOAD MANUAL INPUTS
   document.getElementById("manSL").value = manualStats.SL || "";
   document.getElementById("manEL").value = manualStats.EL || "";
   document.getElementById("manPerm").value = manualStats.perm || "";
+  
   document.getElementById("settingsModal").classList.add("show");
 }
 
