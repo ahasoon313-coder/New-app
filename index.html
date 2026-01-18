@@ -160,9 +160,6 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 }
 .stat-item { display: flex; align-items: center; gap: 4px; }
 .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
-
-/* FILE INPUT HIDDEN */
-#fileInput { display: none; }
 </style>
 </head>
 
@@ -210,13 +207,6 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
       <button onclick="toggleLang()" class="action-btn">Language 🌐</button>
       <button onclick="toggleDark()" class="action-btn">Dark Mode 🌙</button>
       <button onclick="exportToCalendar()" class="action-btn" style="grid-column:span 2">Export to Calendar 📅</button>
-    </div>
-
-    <div class="modal-title" style="font-size:14px; text-align:left; color:var(--primary);">Data Backup</div>
-    <div class="action-grid" style="margin-bottom:20px;">
-      <button onclick="backupData()" class="action-btn" style="background:#34c759; color:white; border:none;">Download Backup 📥</button>
-      <button onclick="document.getElementById('fileInput').click()" class="action-btn" style="background:#ff9500; color:white; border:none;">Restore Data 📤</button>
-      <input type="file" id="fileInput" accept=".json" onchange="restoreData(this)">
     </div>
 
     <div class="modal-title" style="font-size:14px; text-align:left; color:var(--primary);">Manual / Previous Records</div>
@@ -305,7 +295,7 @@ const islamicEvents = {
 let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
-let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}");
+let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}"); // Stores Leaves
 let userDelays = JSON.parse(localStorage.getItem("delays") || "{}");
 let userPerms = JSON.parse(localStorage.getItem("perms") || "{}");
 let customColors = JSON.parse(localStorage.getItem("colors") || "{}");
@@ -331,35 +321,6 @@ function toggleLang() { lang=lang==="en"?"ar":"en"; localStorage.setItem("lang",
 function toggleDark() { dark=!dark; localStorage.setItem("dark",dark); document.body.classList.toggle("dark"); updateThemeColor(dark); }
 function changeMonth(n) { currentDate.setMonth(currentDate.getMonth()+n); render(); }
 function closeModal(id,e) { if(!e || e.target===e.currentTarget) document.getElementById(id).classList.remove("show"); }
-
-/* DATA BACKUP & RESTORE */
-function backupData() {
-  const data = { leaves: userLeaves, delays: userDelays, perms: userPerms, manual: manualStats, colors: customColors, group: groupSelect.value, lang: lang, dark: dark };
-  const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `myshifts_backup_${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
-function restoreData(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      if(data.leaves) localStorage.setItem("leaves", JSON.stringify(data.leaves));
-      if(data.delays) localStorage.setItem("delays", JSON.stringify(data.delays));
-      if(data.perms) localStorage.setItem("perms", JSON.stringify(data.perms));
-      if(data.manual) localStorage.setItem("manual", JSON.stringify(data.manual));
-      if(data.colors) localStorage.setItem("colors", JSON.stringify(data.colors));
-      if(data.group) localStorage.setItem("group", data.group);
-      alert("Data restored successfully!");
-      location.reload();
-    } catch(err) { alert("Invalid Backup File"); }
-  };
-  reader.readAsText(file);
-}
 
 /* MANUAL STATS */
 function saveManual() {
