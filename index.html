@@ -36,11 +36,14 @@ body {
   background: var(--bg); color: var(--text);
   padding-bottom: 100px; transition: background 0.3s ease;
   user-select: none; -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none; /* Prevents bounce effect */
 }
 
-/* RTL Support for Arabic */
-body.rtl { direction: rtl; }
+/* RTL Support (Applied ONLY to Settings/Text, NOT Calendar) */
+body.rtl .modal-content { direction: rtl; text-align: right; }
 body.rtl .row-btn { flex-direction: row-reverse; }
+/* Force LTR for Controls & Calendar even in Arabic */
+.calendar-wrapper, .month-nav, .controls-area, .stats-bar { direction: ltr !important; }
 
 /* --- UI COMPONENTS --- */
 .controls-area { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-bottom: 12px; }
@@ -128,20 +131,27 @@ button:active { transform: scale(0.96); }
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center;
+  transition: opacity 0.3s;
 }
-.modal-overlay.show { display: flex; animation: fadeUp 0.2s ease-out; }
+.modal-overlay.show { display: flex; animation: fadeUp 0.3s ease-out; }
+
 .modal-content {
   background: var(--card); width: 100%; max-width: 400px;
   border-top-left-radius: 20px; border-top-right-radius: 20px;
   padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
-  max-height: 85vh; overflow-y: auto;
+  max-height: 90vh; overflow-y: auto;
+  position: relative;
+  transition: transform 0.2s ease-out; /* Smooth drag */
 }
+
+/* Swipe Handle */
+.modal-handle {
+  width: 40px; height: 5px; background: var(--border);
+  border-radius: 5px; margin: 0 auto 15px auto;
+}
+
 .modal-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; text-align: center; }
 @keyframes fadeUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-/* RTL Modal Alignment */
-.rtl-content { text-align: right; direction: rtl; }
-.rtl-content .action-grid { direction: rtl; }
 
 /* STATS */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
@@ -150,7 +160,8 @@ button:active { transform: scale(0.96); }
 .stat-lbl { font-size: 11px; opacity: 0.6; text-transform: uppercase; }
 
 .manual-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
-.rtl-content .manual-row { flex-direction: row; } /* Maintain row in RTL */
+/* In RTL mode, reverse row */
+body.rtl .manual-row { flex-direction: row-reverse; }
 
 .manual-input { width: 60px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); text-align: center; font-weight: bold; }
 .color-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -214,11 +225,12 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 
 <div id="settingsModal" class="modal-overlay" onclick="closeModal('settingsModal', event)">
   <div class="modal-content" onclick="event.stopPropagation()">
-    </div>
+    <div class="modal-handle"></div> </div>
 </div>
 
 <div id="yearlyModal" class="modal-overlay" onclick="closeModal('yearlyModal', event)">
   <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
     <div class="modal-title" id="yearlyTitle">Yearly Report</div>
     <div class="stats-grid">
       <div class="stat-box" style="border-color:var(--primary)"><span class="stat-val" id="daysWorkedVal" style="color:var(--primary)">0</span><span class="stat-lbl" id="daysWorkedLbl">ATTENDED</span></div>
@@ -243,6 +255,7 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 
 <div id="leaveModal" class="modal-overlay" onclick="closeModal('leaveModal', event)">
   <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
     <div class="modal-title" id="leaveModalTitle">Edit Day</div>
     
     <div class="action-grid" style="margin-bottom:15px;">
@@ -366,6 +379,44 @@ function toggleDark() { dark=!dark; localStorage.setItem("dark",dark); document.
 function changeMonth(n) { currentDate.setMonth(currentDate.getMonth()+n); render(); }
 function closeModal(id,e) { if(!e || e.target===e.currentTarget) document.getElementById(id).classList.remove("show"); }
 
+/* SWIPE TO CLOSE LOGIC (NEW) */
+function enableSwipe(modalId) {
+  const modal = document.getElementById(modalId);
+  const content = modal.querySelector('.modal-content');
+  let startY = 0;
+  
+  content.addEventListener('touchstart', e => {
+    if(content.scrollTop === 0) startY = e.touches[0].clientY;
+    else startY = -1; // Ignore if scrolled
+  }, {passive:true});
+
+  content.addEventListener('touchmove', e => {
+    if(startY < 0) return;
+    const y = e.touches[0].clientY;
+    const diff = y - startY;
+    if(diff > 0) { // Dragging down
+      e.preventDefault();
+      content.style.transform = `translateY(${diff}px)`;
+    }
+  }, {passive:false});
+
+  content.addEventListener('touchend', e => {
+    if(startY < 0) return;
+    const y = e.changedTouches[0].clientY;
+    const diff = y - startY;
+    if(diff > 100) { // Threshold to close
+      modal.classList.remove('show');
+      setTimeout(() => content.style.transform = '', 300);
+    } else {
+      content.style.transform = ''; // Snap back
+    }
+  });
+}
+
+// Enable Swipe for all modals
+['settingsModal', 'yearlyModal', 'leaveModal'].forEach(enableSwipe);
+
+
 /* MANUAL STATS */
 function saveManual() {
   manualStats.SL = parseInt(document.getElementById("manSL").value) || 0;
@@ -397,17 +448,17 @@ function clearTimeData(type) {
 function openSettings() {
   const content = document.querySelector("#settingsModal .modal-content");
   const txt = textLabels[lang];
-  const rtlClass = lang === "ar" ? "rtl-content" : "";
+  // Apply RTL manually if needed, but not global
   
-  // Build Colors HTML
+  // Rebuild Settings HTML to refresh inputs/lang
   let colorHTML = "";
   colorKeys.forEach(k => {
     const c = customColors[k] || defaultColors[k];
     colorHTML += `<div class="color-row"><span>${statsLabels[lang][k]}</span><input type="color" value="${c}" onchange="updateColor('${k}',this.value)"></div>`;
   });
 
-  content.className = `modal-content ${rtlClass}`;
   content.innerHTML = `
+    <div class="modal-handle"></div>
     <div class="modal-title">${txt.settingsTitle}</div>
     <div class="action-grid" style="margin-bottom:20px;">
       <button onclick="toggleDark()" class="action-btn">${txt.darkMode}</button>
@@ -513,7 +564,7 @@ function render() {
   const year=currentDate.getFullYear(), month=currentDate.getMonth(), selected=parseInt(groupSelect.value);
   const txt = textLabels[lang];
   
-  // RTL Support
+  // RTL Support (Settings/Modal only)
   if(lang === "ar") document.body.classList.add("rtl"); else document.body.classList.remove("rtl");
   
   // Main Text
