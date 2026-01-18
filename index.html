@@ -27,9 +27,9 @@ body {
   margin: 0; padding: 12px;
   font-family: var(--font-stack);
   background: var(--bg); color: var(--text);
-  padding-bottom: 100px; /* Space for larger stats bar */
+  padding-bottom: 100px;
   transition: background 0.3s ease;
-  user-select: none; /* Prevent text highlighting on tap */
+  user-select: none;
 }
 
 /* --- Controls --- */
@@ -76,7 +76,6 @@ button:active { transform: scale(0.96); }
   font-size: 12px; padding: 10px 0;
 }
 
-/* Day Cell */
 .day-cell {
   aspect-ratio: 0.8; 
   border-right: 1px solid var(--border);
@@ -85,9 +84,9 @@ button:active { transform: scale(0.96); }
   display: flex; flex-direction: column; 
   align-items: center; justify-content: flex-start;
   padding-top: 6px;
-  cursor: pointer; /* Suggests clickable */
+  cursor: pointer;
 }
-.day-cell:active { opacity: 0.7; background: var(--border); } /* Touch feedback */
+.day-cell:active { opacity: 0.7; background: var(--border); }
 .day-cell:nth-child(7n) { border-right: none; }
 
 .date-num { font-size: 14px; font-weight: 600; z-index: 2; pointer-events: none; }
@@ -97,8 +96,6 @@ button:active { transform: scale(0.96); }
 }
 
 .shift-text { font-size: 18px; font-weight: 800; margin-top: 4px; z-index: 2; pointer-events: none; }
-
-/* Holiday Bar */
 .holiday-bar {
   position: absolute; bottom: 4px; left: 2px; right: 2px;
   font-size: 8px; border-radius: 4px; padding: 2px 0;
@@ -108,39 +105,34 @@ button:active { transform: scale(0.96); }
 .ramadan-tag { background: #34c759; }
 .eid-tag { background: #ff3b30; }
 
-/* --- COLORS & STATUSES --- */
-/* Standard Shifts */
 .M { background: #ffe599; color: #5b4812; }
 .A { background: #9fc5e8; color: #1e3f5e; }
 .N { background: #8e7cc3; color: white; }
 .O { background: transparent; }
-
-/* CUSTOM LEAVES (User Overrides) */
-.SL { background: #ffb3b3 !important; color: #b30000 !important; } /* Sick - Red */
-.VL { background: #b3ffb3 !important; color: #006600 !important; } /* Vacation - Green */
-.EL { background: #ffffb3 !important; color: #999900 !important; } /* Emergency - Yellow */
-
-body.dark .SL { background: #4d0000 !important; color: #ffb3b3 !important; }
-body.dark .VL { background: #003300 !important; color: #b3ffb3 !important; }
-body.dark .EL { background: #4d4d00 !important; color: #ffffb3 !important; }
+.SL { background: #ffb3b3 !important; color: #b30000 !important; }
+.VL { background: #b3ffb3 !important; color: #006600 !important; }
+.EL { background: #ffffb3 !important; color: #999900 !important; }
 
 body.dark .M { background: #665c3d; color: #fff; }
 body.dark .A { background: #3a4e63; color: #fff; }
 body.dark .N { background: #5a4f85; color: #fff; }
+body.dark .SL { background: #4d0000 !important; color: #ffb3b3 !important; }
+body.dark .VL { background: #003300 !important; color: #b3ffb3 !important; }
+body.dark .EL { background: #4d4d00 !important; color: #ffffb3 !important; }
 
 .empty-cell { background: var(--header-bg); opacity: 0.3; pointer-events: none; }
 
-/* --- POPUPS (Modals) --- */
+/* --- MODALS --- */
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center;
 }
 .modal-overlay.show { display: flex; animation: fadeUp 0.2s ease-out; }
-
 .modal-content {
   background: var(--card); width: 100%; max-width: 400px;
   border-top-left-radius: 20px; border-top-right-radius: 20px;
   padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+  max-height: 80vh; overflow-y: auto;
 }
 .modal-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; text-align: center; }
 
@@ -154,9 +146,17 @@ body.dark .N { background: #5a4f85; color: #fff; }
 .btn-el { background: #ffffb3; color: #666600; border: none; }
 .btn-clear { background: var(--border); }
 
+/* --- YEARLY STATS MODAL --- */
+.stats-row { 
+  display: flex; justify-content: space-between; padding: 12px 0; 
+  border-bottom: 1px solid var(--border); font-size: 15px; 
+}
+.stats-total { font-size: 24px; font-weight: bold; text-align: center; padding: 20px 0; color: var(--primary); }
+.stats-label { color: var(--text); opacity: 0.7; }
+
 @keyframes fadeUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* --- STATS BAR --- */
+/* --- BOTTOM BAR --- */
 .stats-bar {
   position: fixed; bottom: 20px; left: 20px; right: 20px;
   background: var(--card); border: 1px solid var(--border);
@@ -184,6 +184,7 @@ body.dark .N { background: #5a4f85; color: #fff; }
   </select>
   
   <div class="row-btn">
+    <button onclick="showYearlyStats()" class="btn-icon" style="background:#8e7cc3; color:white">📊</button>
     <button onclick="shareLink()" class="btn-icon">🔗</button>
     <button onclick="toggleLang()" class="btn-icon">🌐</button>
     <button onclick="toggleDark()" class="btn-icon">🌙</button>
@@ -226,14 +227,27 @@ body.dark .N { background: #5a4f85; color: #fff; }
       <button class="action-btn btn-el" onclick="setLeave('EL')">Emergency 🚨</button>
       <button class="action-btn btn-clear" onclick="setLeave(null)">Clear / Reset 🔄</button>
     </div>
-    <div style="text-align:center; margin-top:15px; opacity:0.6; font-size:12px;">Changes update your stats immediately</div>
+  </div>
+</div>
+
+<div id="yearlyModal" class="modal-overlay" onclick="closeYearlyModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-title" id="yearlyTitle">2026 Summary</div>
+    
+    <div style="text-align:center; margin-bottom:20px;">
+      <div style="font-size:12px; opacity:0.6;" id="daysLeftLabel">DAYS REMAINING IN YEAR</div>
+      <div class="stats-total" id="daysLeftVal">0</div>
+    </div>
+
+    <div id="yearlyStatsBody"></div>
+    
+    <button onclick="closeYearlyModal()" style="width:100%; margin-top:20px; background:var(--border); color:var(--text); padding:12px; border-radius:10px;">Close</button>
   </div>
 </div>
 
 <script>
 /* ---------- CONFIG ---------- */
 const shiftCodes = ["M", "A", "N", "O", "O"];
-// Short labels for grid
 const shiftShort = {
   en: { M: "M", A: "A", N: "N", O: "", SL:"SL", VL:"VL", EL:"EL" },
   ar: { M: "ص", A: "ع", N: "ل", O: "", SL:"م", VL:"إ", EL:"ط" }
@@ -249,7 +263,6 @@ const statsLabels = {
 
 const referenceDate = new Date(2026, 0, 15);
 
-// Holidays
 const islamicEvents = {
   2026: {
     ramadanStart: "2026-02-18", ramadanEnd: "2026-03-19",
@@ -263,9 +276,7 @@ const islamicEvents = {
 let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
-let selectedDateISO = null; // Used for the modal
-
-// Load User Leaves { "2026-01-20": "SL", ... }
+let selectedDateISO = null;
 let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}");
 
 /* ---------- INIT ---------- */
@@ -275,7 +286,6 @@ if (linkGroup) {
   const map = { A: 0, B: 1, C: 2, D: 3, E: 4 };
   if (map[linkGroup.toUpperCase()] !== undefined) localStorage.setItem("group", map[linkGroup.toUpperCase()]);
 }
-
 let savedGroup = localStorage.getItem("group");
 if(savedGroup === null) savedGroup = "-1";
 groupSelect.value = savedGroup;
@@ -312,7 +322,6 @@ function shareLink() {
 
 /* --- LEAVE MANAGEMENT --- */
 function openLeaveModal(isoDate, dayNum) {
-  // Only allow editing if a group is selected
   if(parseInt(groupSelect.value) === -1) {
     alert(lang==="ar" ? "اختر مجموعة أولاً" : "Please select a Group first");
     return;
@@ -321,34 +330,100 @@ function openLeaveModal(isoDate, dayNum) {
   document.getElementById("leaveModalTitle").innerText = `${dayNum} - ${lang==="ar"?"تعديل":"Edit Status"}`;
   document.getElementById("leaveModal").classList.add("show");
 }
-
 function closeLeaveModal(e) {
   if (e && e.target !== e.currentTarget) return;
   document.getElementById("leaveModal").classList.remove("show");
 }
-
 function setLeave(type) {
   if(!selectedDateISO) return;
-  
-  if(type === null) {
-    delete userLeaves[selectedDateISO]; // Clear
-  } else {
-    userLeaves[selectedDateISO] = type; // Set (SL, VL, EL)
-  }
-  
+  if(type === null) delete userLeaves[selectedDateISO];
+  else userLeaves[selectedDateISO] = type;
   localStorage.setItem("leaves", JSON.stringify(userLeaves));
   closeLeaveModal();
   render();
+}
+
+/* --- YEARLY STATS CALCULATION --- */
+function showYearlyStats() {
+  const selected = parseInt(groupSelect.value);
+  if(selected === -1) {
+    alert(lang==="ar" ? "اختر مجموعة أولاً لعرض التقرير السنوي" : "Select a Group first to see yearly stats");
+    return;
+  }
+
+  const currentYear = currentDate.getFullYear();
+  const today = new Date(); 
+  today.setHours(0,0,0,0);
+  
+  // Calculate Days Remaining
+  const endOfYear = new Date(currentYear, 11, 31);
+  const diffTime = endOfYear - today;
+  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Calculate Yearly Totals
+  const yStats = { M:0, A:0, N:0, O:0, SL:0, VL:0, EL:0 };
+  const isLeap = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
+  const totalDays = isLeap ? 366 : 365;
+
+  for(let d=1; d<=totalDays; d++) {
+    // Construct date from day of year (simple method)
+    const date = new Date(currentYear, 0, d); 
+    const yStr = date.getFullYear();
+    const mStr = String(date.getMonth() + 1).padStart(2, '0');
+    const dStr = String(date.getDate()).padStart(2, '0');
+    const iso = `${yStr}-${mStr}-${dStr}`;
+
+    let code = "O";
+    // Check Leave First
+    if(userLeaves[iso]) {
+      code = userLeaves[iso];
+    } else {
+      // Calc Shift
+      const diff = Math.floor((date - referenceDate) / 86400000);
+      const idx = ((diff + selected + 5) % 5 + 5) % 5;
+      code = shiftCodes[idx];
+    }
+    if(yStats[code] !== undefined) yStats[code]++;
+  }
+
+  // Update Modal UI
+  document.getElementById("daysLeftVal").innerText = daysLeft > 0 ? daysLeft : 0;
+  document.getElementById("daysLeftLabel").innerText = lang==="ar" ? "يوم متبقي في السنة" : "DAYS REMAINING IN 2026";
+  document.getElementById("yearlyTitle").innerText = lang==="ar" ? `ملخص ${currentYear}` : `${currentYear} Summary`;
+
+  const body = document.getElementById("yearlyStatsBody");
+  
+  const row = (lbl, val, col) => `
+    <div class="stats-row">
+      <span style="display:flex;align-items:center;gap:8px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${col}"></div> ${lbl}
+      </span>
+      <strong>${val}</strong>
+    </div>`;
+
+  body.innerHTML = 
+    row(statsLabels[lang].M, yStats.M, "#ffe599") +
+    row(statsLabels[lang].A, yStats.A, "#9fc5e8") +
+    row(statsLabels[lang].N, yStats.N, "#8e7cc3") +
+    "<br>" +
+    row(statsLabels[lang].SL, yStats.SL, "#ffb3b3") +
+    row(statsLabels[lang].VL, yStats.VL, "#b3ffb3") +
+    row(statsLabels[lang].EL, yStats.EL, "#ffffb3");
+
+  document.getElementById("yearlyModal").classList.add("show");
+}
+
+function closeYearlyModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById("yearlyModal").classList.remove("show");
 }
 
 /* --- DATE PICKER --- */
 function toggleDatePicker() {
   const p = document.getElementById("datePickerContainer");
   p.classList.add("show");
-  
   const mSel = document.getElementById("pickerMonth"), ySel = document.getElementById("pickerYear");
   mSel.innerHTML=""; ySel.innerHTML="";
-  
   for(let i=0;i<12;i++) {
     let opt = new Option(new Date(2000, i, 1).toLocaleString(lang, {month:"short"}), i);
     if(i===currentDate.getMonth()) opt.selected=true; mSel.add(opt);
@@ -359,17 +434,13 @@ function toggleDatePicker() {
     if(i===cy) opt.selected=true; ySel.add(opt);
   }
 }
-function closePicker(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById("datePickerContainer").classList.remove("show");
-}
+function closePicker(e) { if (e && e.target !== e.currentTarget) return; document.getElementById("datePickerContainer").classList.remove("show"); }
 function applyDate() {
   currentDate = new Date(document.getElementById("pickerYear").value, document.getElementById("pickerMonth").value, 1);
-  closePicker();
-  render();
+  closePicker(); render();
 }
 
-/* --- RENDER LOGIC --- */
+/* --- RENDER --- */
 function render() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -378,16 +449,13 @@ function render() {
   monthTitle.innerText = currentDate.toLocaleString(lang, { month: "long", year: "numeric" });
   document.getElementById("jumpText").innerText = lang === "ar" ? "اضغط لتغيير التاريخ" : "Tap to change date";
 
-  // Header
   const head = document.getElementById("daysHeader");
   head.innerHTML = "";
   days[lang].forEach(d => {
     const el = document.createElement("div");
-    el.innerText = d.substring(0,3);
-    head.appendChild(el);
+    el.innerText = d.substring(0,3); head.appendChild(el);
   });
 
-  // Body
   const body = document.getElementById("calendarBody");
   body.innerHTML = "";
   
@@ -395,20 +463,13 @@ function render() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const events = islamicEvents[year];
   const today = new Date(); today.setHours(0,0,0,0);
-  
-  // Stats Counters
   const stats = { M:0, A:0, N:0, SL:0, VL:0, EL:0 };
 
-  // Padding
-  for(let i=0; i<firstDay; i++) {
-    body.appendChild(document.createElement("div")); // Empty
-  }
+  for(let i=0; i<firstDay; i++) body.appendChild(document.createElement("div"));
 
-  // Days
   for(let d=1; d<=daysInMonth; d++) {
     const date = new Date(year, month, d);
     date.setHours(0,0,0,0);
-    // Fix timezone offset for Key string
     const yStr = date.getFullYear();
     const mStr = String(date.getMonth() + 1).padStart(2, '0');
     const dStr = String(date.getDate()).padStart(2, '0');
@@ -417,26 +478,17 @@ function render() {
     let displayCode = "O";
     let displayClass = "";
     
-    // 1. Calculate Standard Shift
     if (selected !== -1) {
       const diff = Math.floor((date - referenceDate) / 86400000);
       const idx = ((diff + selected + 5) % 5 + 5) % 5;
       displayCode = shiftCodes[idx];
       
-      // 2. Check for User Override (Leaves)
-      if (userLeaves[iso]) {
-        displayCode = userLeaves[iso]; // e.g. "SL"
-      }
-      
+      if (userLeaves[iso]) displayCode = userLeaves[iso];
       displayClass = displayCode;
       
-      // Count Stats (only if not 'O')
-      if (stats[displayCode] !== undefined) {
-        stats[displayCode]++;
-      }
+      if (stats[displayCode] !== undefined) stats[displayCode]++;
     }
 
-    // Holidays
     let hName = "", hClass = "";
     if (events) {
       if (iso >= events.ramadanStart && iso <= events.ramadanEnd) { hName = lang==="ar"?"رمضان":"Ramadan"; hClass="ramadan-tag"; }
@@ -448,35 +500,27 @@ function render() {
     const cell = document.createElement("div");
     cell.className = `day-cell ${displayClass}`;
     if(date.getTime() === today.getTime()) cell.classList.add("today");
-    
-    // On Click -> Open Modal
     cell.onclick = () => openLeaveModal(iso, d);
 
     let content = `<div class="date-num">${d}</div>`;
-    if(selected !== -1 && displayCode !== "O") {
-      content += `<div class="shift-text">${shiftShort[lang][displayCode]}</div>`;
-    }
+    if(selected !== -1 && displayCode !== "O") content += `<div class="shift-text">${shiftShort[lang][displayCode]}</div>`;
     if(hName) content += `<div class="holiday-bar ${hClass}">${hName}</div>`;
 
     cell.innerHTML = content;
     body.appendChild(cell);
   }
 
-  // Render Stats
   const statsBar = document.getElementById("statsBar");
   if (selected !== -1) {
     statsBar.style.display = "flex";
-    // Standard
     let html = `
       <div class="stat-item"><div class="stat-dot" style="background:#ffe599"></div>${stats.M} ${statsLabels[lang].M}</div>
       <div class="stat-item"><div class="stat-dot" style="background:#9fc5e8"></div>${stats.A} ${statsLabels[lang].A}</div>
       <div class="stat-item"><div class="stat-dot" style="background:#8e7cc3"></div>${stats.N} ${statsLabels[lang].N}</div>
     `;
-    // Add Leaves only if they exist > 0
     if(stats.SL > 0) html += `<div class="stat-item"><div class="stat-dot" style="background:#ffb3b3"></div><strong>${stats.SL} ${statsLabels[lang].SL}</strong></div>`;
     if(stats.VL > 0) html += `<div class="stat-item"><div class="stat-dot" style="background:#b3ffb3"></div><strong>${stats.VL} ${statsLabels[lang].VL}</strong></div>`;
     if(stats.EL > 0) html += `<div class="stat-item"><div class="stat-dot" style="background:#ffffb3"></div><strong>${stats.EL} ${statsLabels[lang].EL}</strong></div>`;
-    
     statsBar.innerHTML = html;
   } else {
     statsBar.style.display = "none";
@@ -493,7 +537,6 @@ wrap.addEventListener('touchend', e => {
   if(touchEndX > touchStartX + 50) changeMonth(-1);
 });
 
-// Init
 if(dark) document.body.classList.add("dark");
 updateThemeColor(dark);
 render();
