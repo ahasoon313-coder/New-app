@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>My Shifts Pro +</title>
+<title>My Shifts Ultimate</title>
 <meta name="apple-mobile-web-app-title" content="My Shifts">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,6 @@
   --bg: #f2f2f7; --card: #ffffff; --text: #000000;
   --header-bg: #f2f2f7; --border: #e5e5ea;
   --primary: #007AFF; 
-  --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
 
   /* DEFAULT COLORS */
   --col-M: #ffe599; --text-M: #5b4812;
@@ -33,7 +32,7 @@ body.dark {
 
 body {
   margin: 0; padding: 12px;
-  font-family: var(--font-stack);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
   background: var(--bg); color: var(--text);
   padding-bottom: 100px; transition: background 0.3s ease;
   user-select: none; -webkit-tap-highlight-color: transparent;
@@ -54,6 +53,14 @@ select, button {
 }
 button:active { transform: scale(0.96); }
 .btn-icon { padding: 10px; min-width: 44px; }
+
+/* --- PERMISSION BAR --- */
+.permission-bar {
+  background: var(--primary); color: white;
+  padding: 8px; border-radius: 8px; margin-bottom: 10px;
+  text-align: center; font-size: 13px; font-weight: bold;
+  display: flex; justify-content: space-between; padding-left: 15px; padding-right: 15px;
+}
 
 /* --- Navigation --- */
 .month-nav {
@@ -100,15 +107,15 @@ button:active { transform: scale(0.96); }
 .ramadan-tag { background: #34c759; }
 .eid-tag { background: #ff3b30; }
 
-/* DELAY BADGE (New) */
-.delay-badge {
-  position: absolute; top: 2px; right: 2px;
-  background: #ff3b30; color: white;
-  font-size: 9px; font-weight: bold;
-  padding: 1px 4px; border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-  z-index: 3;
+/* BADGES */
+.badge-container {
+  position: absolute; top: 2px; right: 2px; display: flex; flex-direction: column; gap: 2px; z-index: 5;
 }
+.badge {
+  font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 4px; color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.badge-delay { background: #ff3b30; } 
+.badge-perm { background: #007AFF; }
 
 /* --- DYNAMIC COLORS --- */
 .M { background: var(--col-M); color: var(--text-M); }
@@ -137,23 +144,21 @@ button:active { transform: scale(0.96); }
 
 @keyframes fadeUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* Stats Grid */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.stat-box { 
-  background: var(--bg); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); 
-}
+.stat-box { background: var(--bg); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
 .stat-val { font-size: 20px; font-weight: 800; display: block; margin-bottom: 4px; }
 .stat-lbl { font-size: 11px; opacity: 0.6; text-transform: uppercase; }
 
-/* Settings */
 .color-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
 input[type="color"] { border: none; width: 40px; height: 30px; background: none; cursor: pointer; }
 
-/* Actions */
+/* MANUAL INPUTS */
+.manual-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+.manual-input { width: 60px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); text-align: center; font-weight: bold; }
+
 .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .action-btn { padding: 15px; border-radius: 12px; font-weight: bold; border: 1px solid var(--border); background: var(--bg); color:var(--text);}
 
-/* Bottom Bar */
 .stats-bar {
   position: fixed; bottom: 20px; left: 20px; right: 20px;
   background: var(--card); border: 1px solid var(--border);
@@ -185,6 +190,11 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
   </div>
 </div>
 
+<div class="permission-bar" id="permBar" style="display:none">
+  <span>Month Balance (12h):</span>
+  <span id="permLeft">12h Remaining</span>
+</div>
+
 <div class="month-nav">
   <button class="btn-icon" onclick="changeMonth(-1)">◀</button>
   <div style="text-align:center; cursor:pointer" onclick="toggleDatePicker()">
@@ -209,6 +219,23 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
       <button onclick="toggleDark()" class="action-btn">Dark Mode 🌙</button>
       <button onclick="exportToCalendar()" class="action-btn" style="grid-column:span 2">Export to Calendar 📅</button>
     </div>
+
+    <div class="modal-title" style="font-size:14px; text-align:left; color:var(--primary);">Manual / Previous Records</div>
+    <div style="background:var(--bg); padding:10px; border-radius:10px; margin-bottom:20px;">
+       <div class="manual-row">
+         <span>Sick Leaves (Add to Year):</span>
+         <input type="number" id="manSL" class="manual-input" placeholder="0" onchange="saveManual()">
+       </div>
+       <div class="manual-row">
+         <span>Emergency (Add to Year):</span>
+         <input type="number" id="manEL" class="manual-input" placeholder="0" onchange="saveManual()">
+       </div>
+       <div class="manual-row">
+         <span>Permission (Used This Month):</span>
+         <input type="number" id="manPerm" class="manual-input" placeholder="Hrs" onchange="saveManual()">
+       </div>
+    </div>
+
     <div class="modal-title" style="font-size:14px; text-align:left">Customize Colors</div>
     <div id="colorList"></div>
     <button onclick="resetColors()" style="margin-top:15px; font-size:12px; color:red; background:none; border:none; width:100%">Reset to Default</button>
@@ -222,7 +249,7 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
     <div class="stats-grid">
       <div class="stat-box" style="border-color:var(--primary)">
         <span class="stat-val" id="daysWorkedVal" style="color:var(--primary)">0</span>
-        <span class="stat-lbl" id="daysWorkedLbl">ALREADY WORKED</span>
+        <span class="stat-lbl" id="daysWorkedLbl">ATTENDED</span>
       </div>
       <div class="stat-box">
         <span class="stat-val" id="daysLeftVal">0</span>
@@ -230,17 +257,20 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
       </div>
     </div>
 
-    <div style="background:#fff0f0; padding:10px; border-radius:10px; margin-bottom:20px; border:1px solid #ffcccc; text-align:center;">
-       <span style="font-size:20px; font-weight:bold; color:#d00000" id="totalDelayVal">0h 0m</span>
-       <div style="font-size:10px; color:#d00000; opacity:0.7; font-weight:bold; margin-top:2px;">TOTAL LATENESS</div>
+    <div class="stats-grid">
+      <div class="stat-box" style="background:#f0f8ff; border-color:#007AFF;">
+        <span class="stat-val" id="totalPermVal" style="color:#007AFF">0h</span>
+        <span class="stat-lbl">PERMISSIONS USED (YTD)</span>
+      </div>
+      <div class="stat-box" style="background:#fff0f0; border-color:#ff3b30;">
+        <span class="stat-val" id="totalDelayVal" style="color:#ff3b30">0m</span>
+        <span class="stat-lbl">TOTAL LATENESS (YTD)</span>
+      </div>
     </div>
 
-    <div class="modal-title" style="font-size:14px; margin-top:10px;">Leaves (YTD)</div>
+    <div class="modal-title" style="font-size:14px; margin-top:10px;">Leaves (YTD + Manual)</div>
     <div class="stats-grid" id="leaveStatsGrid"></div>
 
-    <div class="modal-title" style="font-size:14px; margin-top:10px;">Breakdown</div>
-    <div id="yearlyBreakdown"></div>
-    
     <button onclick="closeModal('yearlyModal')" style="width:100%; margin-top:20px; background:var(--border); padding:12px; border-radius:10px;">Close</button>
   </div>
 </div>
@@ -260,10 +290,11 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
   <div class="modal-content" onclick="event.stopPropagation()">
     <div class="modal-title" id="leaveModalTitle">Edit Day</div>
     
-    <button onclick="promptDelay()" style="width:100%; margin-bottom:15px; background:#ff3b30; color:white; padding:15px; border-radius:12px; border:none; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:10px;">
-      ⏰ Report Lateness / Delay
-    </button>
-    
+    <div class="action-grid" style="margin-bottom:15px;">
+      <button onclick="promptPermission()" style="background:#007AFF; color:white; padding:12px; border-radius:10px; border:none; font-weight:bold;">⏱ Permission</button>
+      <button onclick="promptDelay()" style="background:#ff3b30; color:white; padding:12px; border-radius:10px; border:none; font-weight:bold;">😡 Late</button>
+    </div>
+
     <div class="action-grid">
       <button class="action-btn" style="background:var(--col-SL)" onclick="setLeave('SL')">Sick 🤒</button>
       <button class="action-btn" style="background:var(--col-VL)" onclick="setLeave('VL')">Vacation 🏖</button>
@@ -271,7 +302,10 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
       <button class="action-btn" onclick="setLeave(null)">Clear Leaves 🔄</button>
     </div>
     
-    <button onclick="clearDelay()" style="margin-top:15px; background:none; border:none; color:red; width:100%; font-size:12px;">Clear Delay Only</button>
+    <div style="display:flex; gap:10px; margin-top:15px;">
+       <button onclick="clearTimeData('perm')" style="flex:1; font-size:11px; color:#007AFF; background:none; border:1px solid #007AFF; padding:8px; border-radius:8px;">Reset Permission</button>
+       <button onclick="clearTimeData('delay')" style="flex:1; font-size:11px; color:#ff3b30; background:none; border:1px solid #ff3b30; padding:8px; border-radius:8px;">Reset Delay</button>
+    </div>
   </div>
 </div>
 
@@ -301,8 +335,10 @@ let currentDate = new Date();
 let lang = localStorage.getItem("lang") || "en";
 let dark = localStorage.getItem("dark") === "true";
 let userLeaves = JSON.parse(localStorage.getItem("leaves") || "{}");
-let userDelays = JSON.parse(localStorage.getItem("delays") || "{}"); // Format: {"2026-01-20": 15}
+let userDelays = JSON.parse(localStorage.getItem("delays") || "{}");
+let userPerms = JSON.parse(localStorage.getItem("perms") || "{}");
 let customColors = JSON.parse(localStorage.getItem("colors") || "{}");
+let manualStats = JSON.parse(localStorage.getItem("manual") || "{}");
 let selectedDateISO = null;
 
 /* ---------- INIT ---------- */
@@ -314,14 +350,9 @@ if (params.get("group")) {
 groupSelect.value = localStorage.getItem("group") || "-1";
 if (params.get("group")) groupSelect.disabled = true;
 
-/* ---------- CORE FUNCTIONS ---------- */
-function initColors() {
-  colorKeys.forEach(k => { document.documentElement.style.setProperty(`--col-${k}`, customColors[k] || defaultColors[k]); });
-}
-function updateColor(key, val) {
-  customColors[key] = val; localStorage.setItem("colors", JSON.stringify(customColors));
-  document.documentElement.style.setProperty(`--col-${key}`, val); render();
-}
+/* ---------- FUNCTIONS ---------- */
+function initColors() { colorKeys.forEach(k => { document.documentElement.style.setProperty(`--col-${k}`, customColors[k] || defaultColors[k]); }); }
+function updateColor(key, val) { customColors[key] = val; localStorage.setItem("colors", JSON.stringify(customColors)); document.documentElement.style.setProperty(`--col-${key}`, val); render(); }
 function resetColors() { customColors={}; localStorage.removeItem("colors"); initColors(); openSettings(); render(); }
 function saveGroup() { localStorage.setItem("group", groupSelect.value); render(); }
 function updateThemeColor(isDark) { const m=document.getElementById("meta-theme-color"); if(m) m.content=isDark?"#000000":"#f2f2f7"; }
@@ -330,98 +361,96 @@ function toggleDark() { dark=!dark; localStorage.setItem("dark",dark); document.
 function changeMonth(n) { currentDate.setMonth(currentDate.getMonth()+n); render(); }
 function closeModal(id,e) { if(!e || e.target===e.currentTarget) document.getElementById(id).classList.remove("show"); }
 
-/* ---------- DELAY LOGIC ---------- */
-function promptDelay() {
-  if(!selectedDateISO) return;
-  const current = userDelays[selectedDateISO] || "";
-  const mins = prompt(lang==="ar"?"أدخل دقائق التأخير:":"Enter delay in minutes:", current);
-  if(mins !== null) {
-    const val = parseInt(mins);
-    if(val > 0) userDelays[selectedDateISO] = val;
-    else delete userDelays[selectedDateISO];
-    localStorage.setItem("delays", JSON.stringify(userDelays));
-    document.getElementById("leaveModal").classList.remove("show");
-    render();
-  }
-}
-function clearDelay() {
-  if(selectedDateISO && userDelays[selectedDateISO]) {
-    delete userDelays[selectedDateISO];
-    localStorage.setItem("delays", JSON.stringify(userDelays));
-    document.getElementById("leaveModal").classList.remove("show");
-    render();
-  }
+/* ---------- MANUAL STATS ---------- */
+function saveManual() {
+  manualStats.SL = parseInt(document.getElementById("manSL").value) || 0;
+  manualStats.EL = parseInt(document.getElementById("manEL").value) || 0;
+  manualStats.perm = parseFloat(document.getElementById("manPerm").value) || 0;
+  localStorage.setItem("manual", JSON.stringify(manualStats));
+  render(); // Update Permission Bar immediately
 }
 
-/* ---------- SETTINGS MODAL ---------- */
+/* ---------- TIME TRACKING ---------- */
+function promptDelay() {
+  if(!selectedDateISO) return;
+  const mins = prompt(lang==="ar"?"أدخل دقائق التأخير:":"Enter Delay (Minutes):", userDelays[selectedDateISO]||"");
+  if(mins !== null) {
+    const val = parseInt(mins); if(val>0) userDelays[selectedDateISO]=val; else delete userDelays[selectedDateISO];
+    localStorage.setItem("delays", JSON.stringify(userDelays)); document.getElementById("leaveModal").classList.remove("show"); render();
+  }
+}
+function promptPermission() {
+  if(!selectedDateISO) return;
+  const hrs = prompt(lang==="ar"?"كم ساعة استئذان؟ (من 12)":"Hours used? (from 12h allowance):", userPerms[selectedDateISO]||"");
+  if(hrs !== null) {
+    const val = parseFloat(hrs); if(val>0) userPerms[selectedDateISO]=val; else delete userPerms[selectedDateISO];
+    localStorage.setItem("perms", JSON.stringify(userPerms)); document.getElementById("leaveModal").classList.remove("show"); render();
+  }
+}
+function clearTimeData(type) {
+  if(!selectedDateISO) return;
+  if(type==='delay') delete userDelays[selectedDateISO]; if(type==='perm') delete userPerms[selectedDateISO];
+  localStorage.setItem("delays", JSON.stringify(userDelays)); localStorage.setItem("perms", JSON.stringify(userPerms));
+  document.getElementById("leaveModal").classList.remove("show"); render();
+}
+
+/* ---------- SETTINGS ---------- */
 function openSettings() {
+  // Load Colors
   const list = document.getElementById("colorList"); list.innerHTML = "";
-  colorKeys.forEach(k => {
-    const c = customColors[k] || defaultColors[k];
-    list.innerHTML += `<div class="color-row"><span>${statsLabels[lang][k]}</span><input type="color" value="${c}" onchange="updateColor('${k}',this.value)"></div>`;
-  });
+  colorKeys.forEach(k => { const c = customColors[k] || defaultColors[k]; list.innerHTML += `<div class="color-row"><span>${statsLabels[lang][k]}</span><input type="color" value="${c}" onchange="updateColor('${k}',this.value)"></div>`; });
+  // Load Manual Inputs
+  document.getElementById("manSL").value = manualStats.SL || "";
+  document.getElementById("manEL").value = manualStats.EL || "";
+  document.getElementById("manPerm").value = manualStats.perm || "";
+  
   document.getElementById("settingsModal").classList.add("show");
 }
 
 /* ---------- YEARLY STATS ---------- */
 function showYearlyStats() {
-  const selected = parseInt(groupSelect.value);
-  if(selected===-1) { alert(lang==="ar"?"اختر مجموعة أولاً":"Select Group First"); return; }
-
-  const year = currentDate.getFullYear();
-  const today = new Date(); today.setHours(0,0,0,0);
-  let daysWorked=0, daysLeft=0, totalDelayMins=0;
-  const stats = { M:0, A:0, N:0, SL:0, VL:0, EL:0 };
-  const isLeap = (year%4===0 && year%100!==0)||(year%400===0);
-  const totalDays = isLeap?366:365;
+  const selected=parseInt(groupSelect.value); if(selected===-1){alert("Select Group First"); return;}
+  const year=currentDate.getFullYear(); const today=new Date(); today.setHours(0,0,0,0);
+  let daysWorked=0, daysLeft=0, totalDelay=0, totalPerm=0;
+  const stats={SL:0,VL:0,EL:0};
+  const isLeap=(year%4===0&&year%100!==0)||(year%400===0); const totalDays=isLeap?366:365;
 
   for(let d=1; d<=totalDays; d++) {
-    const date = new Date(year, 0, d);
-    const iso = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const date=new Date(year,0,d);
+    const iso=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    let code="O";
+    if(userLeaves[iso]) code=userLeaves[iso];
+    else { const diff=Math.floor((date-referenceDate)/86400000); code=shiftCodes[((diff+selected+5)%5+5)%5]; }
     
-    let code = "O";
-    if(userLeaves[iso]) code = userLeaves[iso];
-    else {
-      const diff = Math.floor((date-referenceDate)/86400000);
-      code = shiftCodes[((diff+selected+5)%5+5)%5];
-    }
-    const isPast = date < today;
-    if(code!=="O") {
-      if(isPast) { daysWorked++; if(stats[code]!==undefined) stats[code]++; }
-      else daysLeft++;
-    }
-    // Count Delay
-    if(userDelays[iso]) totalDelayMins += userDelays[iso];
+    if(code!=="O") { if(date<today) daysWorked++; else daysLeft++; }
+    if(stats[code]!==undefined) stats[code]++;
+    if(userDelays[iso]) totalDelay += userDelays[iso];
+    if(userPerms[iso]) totalPerm += userPerms[iso];
   }
 
-  // Formatting Time
-  const h = Math.floor(totalDelayMins/60);
-  const m = totalDelayMins%60;
+  // ADD MANUAL STATS
+  stats.SL += (manualStats.SL || 0);
+  stats.EL += (manualStats.EL || 0);
   
+  const dh=Math.floor(totalDelay/60), dm=totalDelay%60;
   document.getElementById("yearlyTitle").innerText = `${year} Report`;
   document.getElementById("daysWorkedVal").innerText = daysWorked;
-  document.getElementById("daysWorkedLbl").innerText = lang==="ar"?"أيام عمل منجزة":"DAYS ATTENDED";
   document.getElementById("daysLeftVal").innerText = daysLeft;
-  document.getElementById("daysLeftLbl").innerText = lang==="ar"?"شفتات متبقية":"SHIFTS REMAINING";
-  document.getElementById("totalDelayVal").innerText = `${h}h ${m}m`;
+  document.getElementById("totalDelayVal").innerText = `${dh}h ${dm}m`;
+  document.getElementById("totalPermVal").innerText = `${totalPerm}h`; // Permissions are reset monthly, but total used is interesting.
 
   document.getElementById("leaveStatsGrid").innerHTML = `
     <div class="stat-box" style="background:var(--col-SL)"><span class="stat-val">${stats.SL}</span><span class="stat-lbl">${statsLabels[lang].SL}</span></div>
     <div class="stat-box" style="background:var(--col-VL)"><span class="stat-val">${stats.VL}</span><span class="stat-lbl">${statsLabels[lang].VL}</span></div>
     <div class="stat-box" style="background:var(--col-EL)"><span class="stat-val">${stats.EL}</span><span class="stat-lbl">${statsLabels[lang].EL}</span></div>
   `;
-  document.getElementById("yearlyBreakdown").innerHTML = `
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ccc"><span>${statsLabels[lang].M}</span> <strong>${stats.M}</strong></div>
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ccc"><span>${statsLabels[lang].A}</span> <strong>${stats.A}</strong></div>
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ccc"><span>${statsLabels[lang].N}</span> <strong>${stats.N}</strong></div>
-  `;
   document.getElementById("yearlyModal").classList.add("show");
 }
 
-/* ---------- LEAVES & DATE PICKER ---------- */
+/* ---------- LEAVES & PICKER ---------- */
 function openLeaveModal(iso,d) { if(parseInt(groupSelect.value)===-1)return; selectedDateISO=iso; document.getElementById("leaveModalTitle").innerText=`${d} - Edit`; document.getElementById("leaveModal").classList.add("show"); }
 function setLeave(t) { if(!selectedDateISO)return; if(t===null)delete userLeaves[selectedDateISO]; else userLeaves[selectedDateISO]=t; localStorage.setItem("leaves",JSON.stringify(userLeaves)); document.getElementById("leaveModal").classList.remove("show"); render(); }
-function toggleDatePicker() { document.getElementById("datePickerContainer").classList.add("show"); const m=document.getElementById("pickerMonth"),y=document.getElementById("pickerYear"); m.innerHTML=""; y.innerHTML=""; for(let i=0;i<12;i++) m.add(new Option(new Date(2000,i,1).toLocaleString(lang,{month:"short"}),i)); const cy=currentDate.getFullYear(); for(let i=cy-5;i<=cy+5;i++) y.add(new Option(i,i)); m.value=currentDate.getMonth(); y.value=cy; }
+function toggleDatePicker() { document.getElementById("datePickerContainer").classList.add("show"); const m=document.getElementById("pickerMonth"),y=document.getElementById("pickerYear"); m.innerHTML=""; y.innerHTML=""; for(let i=0;i<12;i++)m.add(new Option(new Date(2000,i,1).toLocaleString(lang,{month:"short"}),i)); const cy=currentDate.getFullYear(); for(let i=cy-5;i<=cy+5;i++) y.add(new Option(i,i)); m.value=currentDate.getMonth(); y.value=cy; }
 function applyDate() { currentDate=new Date(document.getElementById("pickerYear").value,document.getElementById("pickerMonth").value,1); document.getElementById("datePickerContainer").classList.remove("show"); render(); }
 
 /* ---------- EXPORT ---------- */
@@ -429,13 +458,15 @@ function exportToCalendar() {
   const selected=parseInt(groupSelect.value); if(selected===-1){alert("Select Group");return;}
   const year=currentDate.getFullYear(), month=currentDate.getMonth(), daysInMonth=new Date(year,month+1,0).getDate();
   let ics="BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MyShifts//EN\n";
-  const times={M:"070000/150000",A:"140000/220000",N:"220000/060000"};
+  const times={M:"070000/150000",A:"150000/230000",N:"230000/070000"}; 
   for(let d=1;d<=daysInMonth;d++){
     const date=new Date(year,month,d); const iso=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     let code=userLeaves[iso]?userLeaves[iso]:shiftCodes[((Math.floor((date-referenceDate)/86400000)+selected+5)%5+5)%5];
     if(["O","SL","VL","EL"].includes(code))continue;
-    const [s,e]=times[code].split('/'); const ds=iso.replace(/-/g,'');
-    ics+=`BEGIN:VEVENT\nSUMMARY:Shift ${code}\nDTSTART:${ds}T${s}\nDTEND:${ds}T${e}\nEND:VEVENT\n`;
+    const [s,e]=times[code].split('/');
+    let dStart=iso.replace(/-/g,''); let dEnd=dStart;
+    if(code==="N") { const nextDay=new Date(date); nextDay.setDate(date.getDate()+1); dEnd=`${nextDay.getFullYear()}${String(nextDay.getMonth()+1).padStart(2,'0')}${String(nextDay.getDate()).padStart(2,'0')}`; }
+    ics+=`BEGIN:VEVENT\nSUMMARY:Shift ${code}\nDTSTART:${dStart}T${s}\nDTEND:${dEnd}T${e}\nEND:VEVENT\n`;
   }
   ics+="END:VCALENDAR";
   const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); link.download="shifts.ics"; document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -445,12 +476,13 @@ function exportToCalendar() {
 function render() {
   const year=currentDate.getFullYear(), month=currentDate.getMonth(), selected=parseInt(groupSelect.value);
   monthTitle.innerText=currentDate.toLocaleString(lang,{month:"long",year:"numeric"});
-  document.getElementById("jumpText").innerText=lang==="ar"?"اضغط لتغيير التاريخ":"Tap to change date";
   const head=document.getElementById("daysHeader"); head.innerHTML=""; days[lang].forEach(d=>{const el=document.createElement("div");el.innerText=d.substring(0,3);head.appendChild(el);});
   const body=document.getElementById("calendarBody"); body.innerHTML="";
   const firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate();
   const today=new Date(); today.setHours(0,0,0,0); const events=islamicEvents[year];
   const stats={M:0,A:0,N:0,SL:0,VL:0,EL:0};
+  let monthPermUsed = 0;
+
   for(let i=0;i<firstDay;i++)body.appendChild(document.createElement("div"));
   for(let d=1;d<=daysInMonth;d++){
     const date=new Date(year,month,d); date.setHours(0,0,0,0);
@@ -461,6 +493,8 @@ function render() {
       else displayCode=shiftCodes[((Math.floor((date-referenceDate)/86400000)+selected+5)%5+5)%5];
       if(stats[displayCode]!==undefined) stats[displayCode]++;
     }
+    if(userPerms[iso]) monthPermUsed += userPerms[iso];
+
     let hName="",hClass=""; if(events){ if(iso>=events.ramadanStart&&iso<=events.ramadanEnd){hName="Ramadan";hClass="ramadan-tag";}else if(iso>=events.eidFitrStart&&iso<=events.eidFitrEnd){hName="Eid Fitr";hClass="eid-tag";}else if(iso===events.arafah){hName="Arafah";hClass="eid-tag";}else if(iso>=events.eidAdhaStart&&iso<=events.eidAdhaEnd){hName="Eid Adha";hClass="eid-tag";} }
     
     const cell=document.createElement("div"); cell.className=`day-cell ${displayCode}`;
@@ -471,11 +505,26 @@ function render() {
     if(selected!==-1 && displayCode!=="O") content+=`<div class="shift-text">${shiftShort[lang][displayCode]}</div>`;
     if(hName) content+=`<div class="holiday-bar ${hClass}">${hName}</div>`;
     
-    // RENDER DELAY BADGE
-    if(userDelays[iso]) content+=`<div class="delay-badge">${userDelays[iso]}m</div>`;
+    let badges = "";
+    if(userDelays[iso]) badges += `<div class="badge badge-delay">${userDelays[iso]}m</div>`;
+    if(userPerms[iso]) badges += `<div class="badge badge-perm">${userPerms[iso]}h</div>`;
+    if(badges) content += `<div class="badge-container">${badges}</div>`;
 
     cell.innerHTML=content; body.appendChild(cell);
   }
+  
+  // PERM BAR
+  const permBar = document.getElementById("permBar");
+  if(selected!==-1) {
+    permBar.style.display="flex";
+    const manualP = parseFloat(manualStats.perm || 0);
+    // Add manual perm ONLY if we are in the CURRENT month (optional logic, but here we just subtract it from the view)
+    // Actually, usually manual perm is for the current active month view
+    const left = 12 - monthPermUsed - manualP;
+    document.getElementById("permLeft").innerText = `${left}h Remaining`;
+    permBar.style.background = left < 0 ? "#ff3b30" : "#007AFF";
+  } else permBar.style.display="none";
+
   const statsBar=document.getElementById("statsBar");
   if(selected!==-1){
     statsBar.style.display="flex";
