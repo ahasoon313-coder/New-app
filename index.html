@@ -36,16 +36,15 @@ body {
   background: var(--bg); color: var(--text);
   padding-bottom: 100px; transition: background 0.3s ease;
   user-select: none; -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: none; /* Prevents bounce effect */
+  overscroll-behavior: none;
 }
 
-/* RTL Support (Applied ONLY to Settings/Text, NOT Calendar) */
+/* RTL Support */
 body.rtl .modal-content { direction: rtl; text-align: right; }
 body.rtl .row-btn { flex-direction: row-reverse; }
-/* Force LTR for Controls & Calendar even in Arabic */
 .calendar-wrapper, .month-nav, .controls-area, .stats-bar { direction: ltr !important; }
 
-/* --- UI COMPONENTS --- */
+/* UI */
 .controls-area { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-bottom: 12px; }
 .row-btn { display: flex; gap: 8px; }
 
@@ -74,7 +73,7 @@ button:active { transform: scale(0.96); }
 .month-nav h2 { margin: 0; font-size: 18px; font-weight: 700; cursor: pointer; }
 .jump-hint { font-size: 10px; color: var(--primary); display: block; margin-top: 2px; }
 
-/* --- CALENDAR --- */
+/* CALENDAR */
 .calendar-wrapper {
   background: var(--card); border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
@@ -94,12 +93,7 @@ button:active { transform: scale(0.96); }
 }
 .day-cell:nth-child(7n) { border-right: none; }
 
-/* TODAY HIGHLIGHT */
-.day-cell.today {
-  box-shadow: inset 0 0 0 4px var(--primary); 
-  z-index: 5;
-}
-
+.day-cell.today { box-shadow: inset 0 0 0 4px var(--primary); z-index: 5; }
 .date-num { font-size: 14px; font-weight: 600; z-index: 2; pointer-events: none; }
 .today .date-num { color: var(--primary); }
 .shift-text { font-size: 18px; font-weight: 800; margin-top: 4px; z-index: 2; pointer-events: none; }
@@ -117,7 +111,7 @@ button:active { transform: scale(0.96); }
 .badge-delay { background: #ff3b30; } 
 .badge-perm { background: #007AFF; }
 
-/* COLORS */
+/* DYNAMIC COLORS */
 .M { background: var(--col-M); color: var(--text-M); }
 .A { background: var(--col-A); color: var(--text-A); }
 .N { background: var(--col-N); color: var(--text-N); }
@@ -134,35 +128,25 @@ button:active { transform: scale(0.96); }
   transition: opacity 0.3s;
 }
 .modal-overlay.show { display: flex; animation: fadeUp 0.3s ease-out; }
-
 .modal-content {
   background: var(--card); width: 100%; max-width: 400px;
   border-top-left-radius: 20px; border-top-right-radius: 20px;
   padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
   max-height: 90vh; overflow-y: auto;
-  position: relative;
-  transition: transform 0.2s ease-out; /* Smooth drag */
+  position: relative; transition: transform 0.2s ease-out;
 }
-
-/* Swipe Handle */
-.modal-handle {
-  width: 40px; height: 5px; background: var(--border);
-  border-radius: 5px; margin: 0 auto 15px auto;
-}
-
+.modal-handle { width: 40px; height: 5px; background: var(--border); border-radius: 5px; margin: 0 auto 15px auto; }
 .modal-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; text-align: center; }
 @keyframes fadeUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* STATS */
+/* STATS & SETTINGS */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 .stat-box { background: var(--bg); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
 .stat-val { font-size: 20px; font-weight: 800; display: block; margin-bottom: 4px; }
 .stat-lbl { font-size: 11px; opacity: 0.6; text-transform: uppercase; }
 
 .manual-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
-/* In RTL mode, reverse row */
 body.rtl .manual-row { flex-direction: row-reverse; }
-
 .manual-input { width: 60px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); text-align: center; font-weight: bold; }
 .color-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
 input[type="color"] { border: none; width: 40px; height: 30px; background: none; cursor: pointer; }
@@ -180,7 +164,6 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 .stat-item { display: flex; align-items: center; gap: 4px; }
 .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-/* FILE INPUT HIDDEN */
 #fileInput { display: none; }
 </style>
 </head>
@@ -225,7 +208,8 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 
 <div id="settingsModal" class="modal-overlay" onclick="closeModal('settingsModal', event)">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div> </div>
+    <div class="modal-handle"></div>
+    </div>
 </div>
 
 <div id="yearlyModal" class="modal-overlay" onclick="closeModal('yearlyModal', event)">
@@ -257,12 +241,10 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
   <div class="modal-content" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
     <div class="modal-title" id="leaveModalTitle">Edit Day</div>
-    
     <div class="action-grid" style="margin-bottom:15px;">
       <button onclick="promptPermission()" style="background:#007AFF; color:white; padding:12px; border-radius:10px; border:none; font-weight:bold;">⏱ <span id="btnPermLbl">Permission</span></button>
       <button onclick="promptDelay()" style="background:#ff3b30; color:white; padding:12px; border-radius:10px; border:none; font-weight:bold;">😡 <span id="btnDelayLbl">Late</span></button>
     </div>
-
     <div class="modal-title" style="font-size:12px; margin-bottom:5px;" id="leaveStatusTitle">Set Leave Status:</div>
     <div class="action-grid" style="margin-bottom:15px;">
       <button class="action-btn" style="background:var(--col-SL)" onclick="setLeave('SL')">Sick 🤒</button>
@@ -270,7 +252,6 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
       <button class="action-btn" style="background:var(--col-EL)" onclick="setLeave('EL')">Emergency 🚨</button>
       <button class="action-btn" onclick="setLeave(null)">Reset 🔄</button>
     </div>
-    
     <div style="display:flex; gap:10px; margin-top:5px;">
        <button onclick="clearTimeData('perm')" style="flex:1; font-size:10px; color:#007AFF; border:1px solid #007AFF; padding:5px; border-radius:6px; background:none;">Reset Perm</button>
        <button onclick="clearTimeData('delay')" style="flex:1; font-size:10px; color:#ff3b30; border:1px solid #ff3b30; padding:5px; border-radius:6px; background:none;">Reset Delay</button>
@@ -282,44 +263,16 @@ input[type="color"] { border: none; width: 40px; height: 30px; background: none;
 /* TRANSLATIONS */
 const textLabels = {
   en: {
-    langBtn: "عربي",
-    settingsTitle: "App Settings",
-    darkMode: "Dark Mode 🌙",
-    export: "Export to Calendar 📅",
-    manualTitle: "Manual / Previous Records",
-    manSL: "Sick Leaves",
-    manVL: "Vacation",
-    manEL: "Emergency",
-    manPerm: "Permission (Month)",
-    customizeColor: "Customize Colors",
-    resetColor: "Reset Colors",
-    permBar: "Month Balance (12h):",
-    permLeft: "Remaining",
-    jump: "Tap to change date",
-    attended: "ATTENDED",
-    remaining: "REMAINING",
-    permissions: "PERMISSIONS",
-    lateness: "LATENESS"
+    langBtn: "عربي", settingsTitle: "App Settings", darkMode: "Dark Mode 🌙", export: "Export to Calendar 📅",
+    manualTitle: "Manual / Previous Records", manSL: "Sick Leaves", manVL: "Vacation", manEL: "Emergency", manPerm: "Permission (Month)",
+    customizeColor: "Customize Colors", resetColor: "Reset Colors", permBar: "Month Balance (12h):", permLeft: "Remaining",
+    jump: "Tap to change date", attended: "ATTENDED", remaining: "REMAINING", permissions: "PERMISSIONS", lateness: "LATENESS"
   },
   ar: {
-    langBtn: "English",
-    settingsTitle: "إعدادات التطبيق",
-    darkMode: "الوضع الليلي 🌙",
-    export: "تصدير للتقويم 📅",
-    manualTitle: "السجلات السابقة / اليدوية",
-    manSL: "مرضيات (سابقة)",
-    manVL: "إجازات (سابقة)",
-    manEL: "طارئة (سابقة)",
-    manPerm: "استئذان (هذا الشهر)",
-    customizeColor: "تغيير الألوان",
-    resetColor: "إعادة تعيين الألوان",
-    permBar: "رصيد الاستئذان (12س):",
-    permLeft: "متبقي",
-    jump: "اضغط لتغيير التاريخ",
-    attended: "أيام العمل",
-    remaining: "المتبقي",
-    permissions: "إجمالي الاستئذان",
-    lateness: "إجمالي التأخير"
+    langBtn: "English", settingsTitle: "إعدادات التطبيق", darkMode: "الوضع الليلي 🌙", export: "تصدير للتقويم 📅",
+    manualTitle: "السجلات السابقة / اليدوية", manSL: "مرضيات (سابقة)", manVL: "إجازات (سابقة)", manEL: "طارئة (سابقة)", manPerm: "استئذان (هذا الشهر)",
+    customizeColor: "تغيير الألوان", resetColor: "إعادة تعيين الألوان", permBar: "رصيد الاستئذان (12س):", permLeft: "متبقي",
+    jump: "اضغط لتغيير التاريخ", attended: "أيام العمل", remaining: "المتبقي", permissions: "إجمالي الاستئذان", lateness: "إجمالي التأخير"
   }
 };
 
@@ -332,15 +285,7 @@ const colorKeys = ["M", "A", "N", "SL", "VL", "EL"];
 const defaultColors = { M:"#ffe599", A:"#9fc5e8", N:"#8e7cc3", SL:"#ffb3b3", VL:"#b3ffb3", EL:"#ffffb3" };
 const referenceDate = new Date(2026, 0, 15);
 const appStartDate = new Date(2026, 0, 15);
-
-const islamicEvents = {
-  2026: {
-    ramadanStart: "2026-02-18", ramadanEnd: "2026-03-19",
-    eidFitrStart: "2026-03-20", eidFitrEnd: "2026-03-22",
-    arafah: "2026-05-26",
-    eidAdhaStart: "2026-05-27", eidAdhaEnd: "2026-05-30"
-  }
-};
+const islamicEvents = { 2026: { ramadanStart: "2026-02-18", ramadanEnd: "2026-03-19", eidFitrStart: "2026-03-20", eidFitrEnd: "2026-03-22", arafah: "2026-05-26", eidAdhaStart: "2026-05-27", eidAdhaEnd: "2026-05-30" } };
 
 /* STATE */
 let currentDate = new Date();
@@ -355,67 +300,31 @@ let selectedDateISO = null;
 
 /* INIT */
 const params = new URLSearchParams(window.location.search);
-if (params.get("group")) {
-  const map = { A: 0, B: 1, C: 2, D: 3, E: 4 };
-  if (map[params.get("group").toUpperCase()] !== undefined) localStorage.setItem("group", map[params.get("group").toUpperCase()]);
-}
+if (params.get("group")) { const map={A:0,B:1,C:2,D:3,E:4}; if(map[params.get("group").toUpperCase()]!==undefined) localStorage.setItem("group", map[params.get("group").toUpperCase()]); }
 groupSelect.value = localStorage.getItem("group") || "-1";
 if (params.get("group")) groupSelect.disabled = true;
 
-/* CORE FUNCTIONS */
+/* CORE */
 function initColors() { colorKeys.forEach(k => { document.documentElement.style.setProperty(`--col-${k}`, customColors[k] || defaultColors[k]); }); }
-function updateColor(key, val) { customColors[key] = val; localStorage.setItem("colors", JSON.stringify(customColors)); document.documentElement.style.setProperty(`--col-${key}`, val); render(); }
+function updateColor(key, val) { customColors[key]=val; localStorage.setItem("colors", JSON.stringify(customColors)); document.documentElement.style.setProperty(`--col-${key}`, val); render(); }
 function resetColors() { customColors={}; localStorage.removeItem("colors"); initColors(); openSettings(); render(); }
 function saveGroup() { localStorage.setItem("group", groupSelect.value); render(); }
 function updateThemeColor(isDark) { const m=document.getElementById("meta-theme-color"); if(m) m.content=isDark?"#000000":"#f2f2f7"; }
-
-function toggleLang() { 
-  lang = lang === "en" ? "ar" : "en"; 
-  localStorage.setItem("lang", lang); 
-  render(); 
-}
-
+function toggleLang() { lang=lang==="en"?"ar":"en"; localStorage.setItem("lang", lang); render(); }
 function toggleDark() { dark=!dark; localStorage.setItem("dark",dark); document.body.classList.toggle("dark"); updateThemeColor(dark); }
 function changeMonth(n) { currentDate.setMonth(currentDate.getMonth()+n); render(); }
 function closeModal(id,e) { if(!e || e.target===e.currentTarget) document.getElementById(id).classList.remove("show"); }
 
-/* SWIPE TO CLOSE LOGIC (NEW) */
+/* SWIPE TO CLOSE */
 function enableSwipe(modalId) {
   const modal = document.getElementById(modalId);
   const content = modal.querySelector('.modal-content');
   let startY = 0;
-  
-  content.addEventListener('touchstart', e => {
-    if(content.scrollTop === 0) startY = e.touches[0].clientY;
-    else startY = -1; // Ignore if scrolled
-  }, {passive:true});
-
-  content.addEventListener('touchmove', e => {
-    if(startY < 0) return;
-    const y = e.touches[0].clientY;
-    const diff = y - startY;
-    if(diff > 0) { // Dragging down
-      e.preventDefault();
-      content.style.transform = `translateY(${diff}px)`;
-    }
-  }, {passive:false});
-
-  content.addEventListener('touchend', e => {
-    if(startY < 0) return;
-    const y = e.changedTouches[0].clientY;
-    const diff = y - startY;
-    if(diff > 100) { // Threshold to close
-      modal.classList.remove('show');
-      setTimeout(() => content.style.transform = '', 300);
-    } else {
-      content.style.transform = ''; // Snap back
-    }
-  });
+  content.addEventListener('touchstart', e => { if(content.scrollTop===0) startY=e.touches[0].clientY; else startY=-1; }, {passive:true});
+  content.addEventListener('touchmove', e => { if(startY<0) return; const diff=e.touches[0].clientY-startY; if(diff>0) { e.preventDefault(); content.style.transform=`translateY(${diff}px)`; } }, {passive:false});
+  content.addEventListener('touchend', e => { if(startY<0) return; const diff=e.changedTouches[0].clientY-startY; if(diff>100) { modal.classList.remove('show'); setTimeout(()=>content.style.transform='',300); } else { content.style.transform=''; } });
 }
-
-// Enable Swipe for all modals
 ['settingsModal', 'yearlyModal', 'leaveModal'].forEach(enableSwipe);
-
 
 /* MANUAL STATS */
 function saveManual() {
@@ -444,18 +353,12 @@ function clearTimeData(type) {
   document.getElementById("leaveModal").classList.remove("show"); render();
 }
 
-/* SETTINGS & MODALS (DYNAMIC TRANSLATION) */
+/* SETTINGS & MODALS */
 function openSettings() {
   const content = document.querySelector("#settingsModal .modal-content");
   const txt = textLabels[lang];
-  // Apply RTL manually if needed, but not global
-  
-  // Rebuild Settings HTML to refresh inputs/lang
   let colorHTML = "";
-  colorKeys.forEach(k => {
-    const c = customColors[k] || defaultColors[k];
-    colorHTML += `<div class="color-row"><span>${statsLabels[lang][k]}</span><input type="color" value="${c}" onchange="updateColor('${k}',this.value)"></div>`;
-  });
+  colorKeys.forEach(k => { const c=customColors[k]||defaultColors[k]; colorHTML+=`<div class="color-row"><span>${statsLabels[lang][k]}</span><input type="color" value="${c}" onchange="updateColor('${k}',this.value)"></div>`; });
 
   content.innerHTML = `
     <div class="modal-handle"></div>
@@ -464,7 +367,6 @@ function openSettings() {
       <button onclick="toggleDark()" class="action-btn">${txt.darkMode}</button>
       <button onclick="exportToCalendar()" class="action-btn">${txt.export}</button>
     </div>
-
     <div class="modal-title" style="font-size:14px; text-align:${lang==='ar'?'right':'left'}; color:var(--primary);">${txt.manualTitle}</div>
     <div style="background:var(--bg); padding:10px; border-radius:10px; margin-bottom:20px;">
        <div class="manual-row"><span>${txt.manSL}:</span><input type="number" id="manSL" class="manual-input" placeholder="0" onchange="saveManual()"></div>
@@ -472,19 +374,14 @@ function openSettings() {
        <div class="manual-row"><span>${txt.manEL}:</span><input type="number" id="manEL" class="manual-input" placeholder="0" onchange="saveManual()"></div>
        <div class="manual-row"><span>${txt.manPerm}:</span><input type="number" id="manPerm" class="manual-input" placeholder="Hrs" onchange="saveManual()"></div>
     </div>
-
     <div class="modal-title" style="font-size:14px; text-align:${lang==='ar'?'right':'left'}">${txt.customizeColor}</div>
     <div id="colorList" style="margin-bottom:15px;">${colorHTML}</div>
-    
     <button onclick="resetColors()" style="font-size:12px; color:red; background:none; border:none; width:100%">${txt.resetColor}</button>
   `;
-
-  // Pre-fill inputs
   document.getElementById("manSL").value = manualStats.SL || "";
   document.getElementById("manVL").value = manualStats.VL || "";
   document.getElementById("manEL").value = manualStats.EL || "";
   document.getElementById("manPerm").value = manualStats.perm || "";
-  
   document.getElementById("settingsModal").classList.add("show");
 }
 
@@ -498,24 +395,24 @@ function showYearlyStats() {
   for(let d=1; d<=totalDays; d++) {
     const date=new Date(year,0,d);
     if(date < appStartDate) continue; 
-
     const iso=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     let code="O";
     if(userLeaves[iso]) code=userLeaves[iso];
     else { const diff=Math.floor((date-referenceDate)/86400000); code=shiftCodes[((diff+selected+5)%5+5)%5]; }
     
-    if(code!=="O") { if(date<today) daysWorked++; else daysLeft++; }
+    // UPDATED LOGIC: Only count work days (M, A, N) as worked
+    if(["M","A","N"].includes(code)) { 
+        if(date<today) daysWorked++; else daysLeft++; 
+    }
+    
     if(stats[code]!==undefined) stats[code]++;
     if(userDelays[iso]) totalDelay += userDelays[iso];
     if(userPerms[iso]) totalPerm += userPerms[iso];
   }
-  stats.SL += (manualStats.SL || 0); 
-  stats.VL += (manualStats.VL || 0); 
-  stats.EL += (manualStats.EL || 0);
+  stats.SL += (manualStats.SL || 0); stats.VL += (manualStats.VL || 0); stats.EL += (manualStats.EL || 0);
   
   const dh=Math.floor(totalDelay/60), dm=totalDelay%60;
   const txt = textLabels[lang];
-
   document.getElementById("yearlyTitle").innerText = `${year} Report`;
   document.getElementById("daysWorkedVal").innerText = daysWorked;
   document.getElementById("daysWorkedLbl").innerText = txt.attended;
@@ -525,7 +422,6 @@ function showYearlyStats() {
   document.getElementById("delayTotalLbl").innerText = txt.lateness;
   document.getElementById("totalPermVal").innerText = `${totalPerm}h`;
   document.getElementById("permTotalLbl").innerText = txt.permissions;
-
   document.getElementById("leaveStatsGrid").innerHTML = `
     <div class="stat-box" style="background:var(--col-SL)"><span class="stat-val">${stats.SL}</span><span class="stat-lbl">${statsLabels[lang].SL}</span></div>
     <div class="stat-box" style="background:var(--col-VL)"><span class="stat-val">${stats.VL}</span><span class="stat-lbl">${statsLabels[lang].VL}</span></div>
@@ -563,11 +459,8 @@ function exportToCalendar() {
 function render() {
   const year=currentDate.getFullYear(), month=currentDate.getMonth(), selected=parseInt(groupSelect.value);
   const txt = textLabels[lang];
-  
-  // RTL Support (Settings/Modal only)
   if(lang === "ar") document.body.classList.add("rtl"); else document.body.classList.remove("rtl");
   
-  // Main Text
   monthTitle.innerText=currentDate.toLocaleString(lang,{month:"long",year:"numeric"});
   document.getElementById("jumpText").innerText = txt.jump;
   document.getElementById("langBtn").innerText = txt.langBtn;
